@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #include <gtest/gtest.h>
+
 #include <experimental/filesystem>
-#include <string>
 #include <memory>
+#include <string>
 #include <utility>
 
-#include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
+#include "rclcpp/rclcpp.hpp"
 
-TEST(MapSaverCLI, CLITest)
-{
+TEST(MapSaverCLI, CLITest) {
   std::string path = "/tmp/";
   std::string file = "test_map";
   std::string file_path = path + file;
@@ -33,8 +33,7 @@ TEST(MapSaverCLI, CLITest)
   RCLCPP_INFO(node->get_logger(), "Testing Map Saver CLI");
 
   auto publisher = node->create_publisher<nav_msgs::msg::OccupancyGrid>(
-    "/map",
-    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+      "/map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
   auto msg = std::make_unique<nav_msgs::msg::OccupancyGrid>();
   msg->header.frame_id = "map";
@@ -63,9 +62,7 @@ TEST(MapSaverCLI, CLITest)
 
   EXPECT_FALSE(std::experimental::filesystem::exists(file_path + ".yaml"));
 
-  std::string command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli -f ") + file_path;
+  std::string command = std::string("ros2 run nav2_map_server map_saver_cli -f ") + file_path;
   auto return_code = system(command.c_str());
   EXPECT_EQ(return_code, 0);
 
@@ -88,11 +85,10 @@ TEST(MapSaverCLI, CLITest)
 
   EXPECT_FALSE(std::experimental::filesystem::exists(file_path + ".yaml"));
 
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli "
-    "-t map_failure --occ 100 --free 2 --mode trinary --fmt png -f ") + file_path +
-    std::string("--ros-args __node:=map_saver_test_node");
+  command = std::string(
+                "ros2 run nav2_map_server map_saver_cli "
+                "-t map_failure --occ 100 --free 2 --mode trinary --fmt png -f ") +
+            file_path + std::string("--ros-args __node:=map_saver_test_node");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 65280);
 
@@ -103,44 +99,35 @@ TEST(MapSaverCLI, CLITest)
   EXPECT_FALSE(std::experimental::filesystem::exists(file_path + ".yaml"));
 
   RCLCPP_INFO(node->get_logger(), "Testing help...");
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli -h");
+  command = std::string("ros2 run nav2_map_server map_saver_cli -h");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 0);
 
   rclcpp::Rate(0.5).sleep();
 
   RCLCPP_INFO(node->get_logger(), "Testing invalid mode...");
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli --mode fake_mode");
+  command = std::string("ros2 run nav2_map_server map_saver_cli --mode fake_mode");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 0);
 
   rclcpp::Rate(0.5).sleep();
 
   RCLCPP_INFO(node->get_logger(), "Testing missing argument...");
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli --mode");
+  command = std::string("ros2 run nav2_map_server map_saver_cli --mode");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 65280);
 
   rclcpp::Rate(0.5).sleep();
 
   RCLCPP_INFO(node->get_logger(), "Testing wrong argument...");
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli --free 0 0");
+  command = std::string("ros2 run nav2_map_server map_saver_cli --free 0 0");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 65280);
 
   rclcpp::Rate(0.5).sleep();
 
-  command =
-    std::string(
-    "ros2 run nav2_map_server map_saver_cli --ros-args -r __node:=map_saver_test_node");
+  command = std::string(
+      "ros2 run nav2_map_server map_saver_cli --ros-args -r __node:=map_saver_test_node");
   return_code = system(command.c_str());
   EXPECT_EQ(return_code, 0);
 }

@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
-#include <string>
-#include <iostream>
-#include <cstdlib>
 #include <chrono>
-#include "rclcpp/rclcpp.hpp"
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
+
 #include "nav2_util/lifecycle_utils.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 using std::cerr;
 using namespace std::chrono_literals;
 
-void usage()
-{
+void usage() {
   cerr << "Invalid command line.\n\n";
   cerr << "This command will take a set of unconfigured lifecycle nodes through the\n";
   cerr << "CONFIGURED to the ACTIVATED state\n";
@@ -34,14 +34,11 @@ void usage()
   std::exit(1);
 }
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char* argv[]) {
   if (argc == 1) {
     usage();
   }
   rclcpp::init(0, nullptr);
-  nav2_util::startup_lifecycle_nodes(
-    std::vector<std::string>(argv + 1, argv + argc),
-    10s);
+  nav2_util::startup_lifecycle_nodes(std::vector<std::string>(argv + 1, argv + argc), 10s);
   rclcpp::shutdown();
 }

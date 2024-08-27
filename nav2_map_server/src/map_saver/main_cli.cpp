@@ -14,34 +14,32 @@
 // limitations under the License.
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
 
 #include "nav2_map_server/map_mode.hpp"
 #include "nav2_map_server/map_saver.hpp"
-
 #include "rclcpp/rclcpp.hpp"
 
 using namespace nav2_map_server;  // NOLINT
 
-const char * USAGE_STRING{
-  "Usage:\n"
-  "  map_saver_cli [arguments] [--ros-args ROS remapping args]\n"
-  "\n"
-  "Arguments:\n"
-  "  -h/--help\n"
-  "  -t <map_topic>\n"
-  "  -f <mapname>\n"
-  "  --occ <threshold_occupied>\n"
-  "  --free <threshold_free>\n"
-  "  --fmt <image_format>\n"
-  "  --mode trinary(default)/scale/raw\n"
-  "\n"
-  "NOTE: --ros-args should be passed at the end of command line"};
+const char* USAGE_STRING{
+    "Usage:\n"
+    "  map_saver_cli [arguments] [--ros-args ROS remapping args]\n"
+    "\n"
+    "Arguments:\n"
+    "  -h/--help\n"
+    "  -t <map_topic>\n"
+    "  -f <mapname>\n"
+    "  --occ <threshold_occupied>\n"
+    "  --free <threshold_free>\n"
+    "  --fmt <image_format>\n"
+    "  --mode trinary(default)/scale/raw\n"
+    "\n"
+    "NOTE: --ros-args should be passed at the end of command line"};
 
-typedef enum
-{
+typedef enum {
   COMMAND_MAP_TOPIC,
   COMMAND_MAP_FILE_NAME,
   COMMAND_IMAGE_FORMAT,
@@ -50,38 +48,29 @@ typedef enum
   COMMAND_MODE
 } COMMAND_TYPE;
 
-struct cmd_struct
-{
-  const char * cmd;
+struct cmd_struct {
+  const char* cmd;
   COMMAND_TYPE command_type;
 };
 
-typedef enum
-{
-  ARGUMENTS_INVALID,
-  ARGUMENTS_VALID,
-  HELP_MESSAGE
-} ARGUMENTS_STATUS;
+typedef enum { ARGUMENTS_INVALID, ARGUMENTS_VALID, HELP_MESSAGE } ARGUMENTS_STATUS;
 
 // Arguments parser
 // Input parameters: logger, argc, argv
 // Output parameters: map_topic, save_parameters
-ARGUMENTS_STATUS parse_arguments(
-  const rclcpp::Logger & logger, int argc, char ** argv,
-  std::string & map_topic, SaveParameters & save_parameters)
-{
+ARGUMENTS_STATUS parse_arguments(const rclcpp::Logger& logger, int argc, char** argv,
+    std::string& map_topic, SaveParameters& save_parameters) {
   const struct cmd_struct commands[] = {
-    {"-t", COMMAND_MAP_TOPIC},
-    {"-f", COMMAND_MAP_FILE_NAME},
-    {"--occ", COMMAND_OCCUPIED_THRESH},
-    {"--free", COMMAND_FREE_THRESH},
-    {"--mode", COMMAND_MODE},
-    {"--fmt", COMMAND_IMAGE_FORMAT},
+      {"-t", COMMAND_MAP_TOPIC},
+      {"-f", COMMAND_MAP_FILE_NAME},
+      {"--occ", COMMAND_OCCUPIED_THRESH},
+      {"--free", COMMAND_FREE_THRESH},
+      {"--mode", COMMAND_MODE},
+      {"--fmt", COMMAND_IMAGE_FORMAT},
   };
 
   std::vector<std::string> arguments(argv + 1, argv + argc);
   std::vector<rclcpp::Parameter> params_from_args;
-
 
   size_t cmd_size = sizeof(commands) / sizeof(commands[0]);
   size_t i;
@@ -119,12 +108,11 @@ ARGUMENTS_STATUS parse_arguments(
           case COMMAND_MODE:
             try {
               save_parameters.mode = map_mode_from_string(*it);
-            } catch (std::invalid_argument &) {
+            } catch (std::invalid_argument&) {
               save_parameters.mode = MapMode::Trinary;
-              RCLCPP_WARN(
-                logger,
-                "Map mode parameter not recognized: %s, using default value (trinary)",
-                it->c_str());
+              RCLCPP_WARN(logger,
+                  "Map mode parameter not recognized: %s, using default value (trinary)",
+                  it->c_str());
             }
             break;
         }
@@ -140,8 +128,7 @@ ARGUMENTS_STATUS parse_arguments(
   return ARGUMENTS_VALID;
 }
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char** argv) {
   // ROS2 init
   rclcpp::init(argc, argv);
   auto logger = rclcpp::get_logger("map_saver_cli");
@@ -170,7 +157,7 @@ int main(int argc, char ** argv)
     } else {
       retcode = 1;
     }
-  } catch (std::exception & e) {
+  } catch (std::exception& e) {
     RCLCPP_ERROR(logger, "Unexpected problem appear: %s", e.what());
     retcode = -1;
   }

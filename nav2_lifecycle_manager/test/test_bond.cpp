@@ -13,37 +13,34 @@
 // limitations under the License.
 
 #include <gtest/gtest.h>
-#include <memory>
+
 #include <chrono>
+#include <memory>
 #include <string>
-#include "rclcpp/rclcpp.hpp"
-#include "nav2_util/lifecycle_node.hpp"
-#include "nav2_util/node_thread.hpp"
+
 #include "nav2_lifecycle_manager/lifecycle_manager.hpp"
 #include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
+#include "nav2_util/lifecycle_node.hpp"
+#include "nav2_util/node_thread.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 // minimal lifecycle node implementing bond as in rest of navigation servers
-class TestLifecycleNode : public nav2_util::LifecycleNode
-{
-public:
-  TestLifecycleNode(bool bond, std::string name)
-  : nav2_util::LifecycleNode(name)
-  {
+class TestLifecycleNode : public nav2_util::LifecycleNode {
+ public:
+  TestLifecycleNode(bool bond, std::string name) : nav2_util::LifecycleNode(name) {
     state = "";
     enable_bond = bond;
   }
 
-  CallbackReturn on_configure(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_configure(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is Configured!");
     state = "configured";
     return CallbackReturn::SUCCESS;
   }
 
-  CallbackReturn on_activate(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_activate(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is Activated!");
     state = "activated";
     if (enable_bond) {
@@ -52,8 +49,7 @@ public:
     return CallbackReturn::SUCCESS;
   }
 
-  CallbackReturn on_deactivate(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_deactivate(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is Deactivated!");
     state = "deactivated";
     if (enable_bond) {
@@ -62,61 +58,41 @@ public:
     return CallbackReturn::SUCCESS;
   }
 
-  CallbackReturn on_cleanup(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_cleanup(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is Cleanup!");
     state = "cleaned up";
     return CallbackReturn::SUCCESS;
   }
 
-  CallbackReturn on_shutdown(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_shutdown(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is Shutdown!");
     state = "shut down";
     return CallbackReturn::SUCCESS;
   }
 
-  CallbackReturn on_error(const rclcpp_lifecycle::State & /*state*/) override
-  {
+  CallbackReturn on_error(const rclcpp_lifecycle::State& /*state*/) override {
     RCLCPP_INFO(get_logger(), "Lifecycle Test node is encountered an error!");
     state = "errored";
     return CallbackReturn::SUCCESS;
   }
 
-  bool bondAllocated()
-  {
-    return bond_ ? true : false;
-  }
+  bool bondAllocated() { return bond_ ? true : false; }
 
-  void breakBond()
-  {
-    bond_->breakBond();
-  }
+  void breakBond() { bond_->breakBond(); }
 
-  std::string getState()
-  {
-    return state;
-  }
+  std::string getState() { return state; }
 
-  bool isBondEnabled()
-  {
-    return enable_bond;
-  }
+  bool isBondEnabled() { return enable_bond; }
 
-  bool isBondConnected()
-  {
-    return bondAllocated() ? !bond_->isBroken() : false;
-  }
+  bool isBondConnected() { return bondAllocated() ? !bond_->isBroken() : false; }
 
   std::string state;
   bool enable_bond;
 };
 
-class TestFixture
-{
-public:
-  TestFixture(bool bond, std::string node_name)
-  {
+class TestFixture {
+ public:
+  TestFixture(bool bond, std::string node_name) {
     lf_node_ = std::make_shared<TestLifecycleNode>(bond, node_name);
     lf_thread_ = std::make_unique<nav2_util::NodeThread>(lf_node_->get_node_base_interface());
   }
@@ -125,8 +101,7 @@ public:
   std::unique_ptr<nav2_util::NodeThread> lf_thread_;
 };
 
-TEST(LifecycleBondTest, POSITIVE)
-{
+TEST(LifecycleBondTest, POSITIVE) {
   // let the lifecycle server come up
   rclcpp::Rate(1).sleep();
 
@@ -148,9 +123,8 @@ TEST(LifecycleBondTest, POSITIVE)
 
   // bond should be disconnected now and lifecycle manager should know and react to reset
   rclcpp::Rate(5).sleep();
-  EXPECT_EQ(
-    nav2_lifecycle_manager::SystemStatus::INACTIVE,
-    client.is_active(std::chrono::nanoseconds(1000000000)));
+  EXPECT_EQ(nav2_lifecycle_manager::SystemStatus::INACTIVE,
+      client.is_active(std::chrono::nanoseconds(1000000000)));
   EXPECT_FALSE(bond_tester->isBondConnected());
   EXPECT_EQ(bond_tester->getState(), "cleaned up");
 
@@ -158,9 +132,8 @@ TEST(LifecycleBondTest, POSITIVE)
   EXPECT_TRUE(client.startup());
   EXPECT_EQ(bond_tester->getState(), "activated");
   EXPECT_TRUE(bond_tester->isBondConnected());
-  EXPECT_EQ(
-    nav2_lifecycle_manager::SystemStatus::ACTIVE,
-    client.is_active(std::chrono::nanoseconds(1000000000)));
+  EXPECT_EQ(nav2_lifecycle_manager::SystemStatus::ACTIVE,
+      client.is_active(std::chrono::nanoseconds(1000000000)));
 
   // clean state for next test.
   EXPECT_TRUE(client.reset());
@@ -168,8 +141,7 @@ TEST(LifecycleBondTest, POSITIVE)
   EXPECT_EQ(bond_tester->getState(), "cleaned up");
 }
 
-TEST(LifecycleBondTest, NEGATIVE)
-{
+TEST(LifecycleBondTest, NEGATIVE) {
   auto node = std::make_shared<rclcpp::Node>("lifecycle_manager_test_service_client");
   nav2_lifecycle_manager::LifecycleManagerClient client("lifecycle_manager_test", node);
 
@@ -178,13 +150,11 @@ TEST(LifecycleBondTest, NEGATIVE)
   auto bond_tester = fixture.lf_node_;
   EXPECT_FALSE(client.startup());
   EXPECT_FALSE(bond_tester->isBondEnabled());
-  EXPECT_EQ(
-    nav2_lifecycle_manager::SystemStatus::INACTIVE,
-    client.is_active(std::chrono::nanoseconds(1000000000)));
+  EXPECT_EQ(nav2_lifecycle_manager::SystemStatus::INACTIVE,
+      client.is_active(std::chrono::nanoseconds(1000000000)));
 }
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
   // initialize ROS

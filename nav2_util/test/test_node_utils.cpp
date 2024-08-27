@@ -15,62 +15,55 @@
 #include <memory>
 #include <string>
 
-#include "nav2_util/node_utils.hpp"
 #include "gtest/gtest.h"
+#include "nav2_util/node_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-using nav2_util::sanitize_node_name;
-using nav2_util::generate_internal_node_name;
-using nav2_util::generate_internal_node;
 using nav2_util::add_namespaces;
-using nav2_util::time_to_string;
 using nav2_util::declare_parameter_if_not_declared;
+using nav2_util::generate_internal_node;
+using nav2_util::generate_internal_node_name;
 using nav2_util::get_plugin_type_param;
+using nav2_util::sanitize_node_name;
+using nav2_util::time_to_string;
 
-class RclCppFixture
-{
-public:
-  RclCppFixture() {rclcpp::init(0, nullptr);}
-  ~RclCppFixture() {rclcpp::shutdown();}
+class RclCppFixture {
+ public:
+  RclCppFixture() { rclcpp::init(0, nullptr); }
+  ~RclCppFixture() { rclcpp::shutdown(); }
 };
 RclCppFixture g_rclcppfixture;
 
-TEST(SanitizeNodeName, SanitizeNodeName)
-{
+TEST(SanitizeNodeName, SanitizeNodeName) {
   ASSERT_EQ(sanitize_node_name("bar"), "bar");
   ASSERT_EQ(sanitize_node_name("/foo/bar"), "_foo_bar");
 }
 
-TEST(TimeToString, IsLengthCorrect)
-{
+TEST(TimeToString, IsLengthCorrect) {
   ASSERT_EQ(time_to_string(0).length(), 0u);
   ASSERT_EQ(time_to_string(1).length(), 1u);
   ASSERT_EQ(time_to_string(10).length(), 10u);
   ASSERT_EQ(time_to_string(20)[0], '0');
 }
 
-TEST(TimeToString, TimeToStringDifferent)
-{
+TEST(TimeToString, TimeToStringDifferent) {
   auto time1 = time_to_string(8);
   auto time2 = time_to_string(8);
   ASSERT_NE(time1, time2);
 }
 
-TEST(GenerateInternalNodeName, GenerateNodeName)
-{
+TEST(GenerateInternalNodeName, GenerateNodeName) {
   auto defaultName = generate_internal_node_name();
   ASSERT_EQ(defaultName[0], '_');
   ASSERT_EQ(defaultName.length(), 9u);
 }
 
-TEST(AddNamespaces, AddNamespaceSlash)
-{
+TEST(AddNamespaces, AddNamespaceSlash) {
   ASSERT_EQ(add_namespaces("hi", "bye"), "hi/bye");
   ASSERT_EQ(add_namespaces("hi/", "bye"), "/hi/bye");
 }
 
-TEST(DeclareParameterIfNotDeclared, DeclareParameterIfNotDeclared)
-{
+TEST(DeclareParameterIfNotDeclared, DeclareParameterIfNotDeclared) {
   auto node = std::make_shared<rclcpp::Node>("test_node");
   std::string param;
 
@@ -86,8 +79,7 @@ TEST(DeclareParameterIfNotDeclared, DeclareParameterIfNotDeclared)
   ASSERT_EQ(param, "fred");
 }
 
-TEST(GetPluginTypeParam, GetPluginTypeParam)
-{
+TEST(GetPluginTypeParam, GetPluginTypeParam) {
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
   auto node = std::make_shared<rclcpp::Node>("test_node");
   node->declare_parameter("Foo.plugin", "bar");
@@ -95,8 +87,7 @@ TEST(GetPluginTypeParam, GetPluginTypeParam)
   EXPECT_THROW(get_plugin_type_param(node, "Waldo"), std::runtime_error);
 }
 
-TEST(TestParamCopying, TestParamCopying)
-{
+TEST(TestParamCopying, TestParamCopying) {
   auto node1 = std::make_shared<rclcpp::Node>("test_node1");
   auto node2 = std::make_shared<rclcpp::Node>("test_node2");
 

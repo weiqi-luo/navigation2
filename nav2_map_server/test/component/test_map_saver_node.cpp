@@ -13,43 +13,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <gtest/gtest.h>
 
-#include <string>
-#include <memory>
 #include <experimental/filesystem>  // NOLINT
+#include <memory>
+#include <string>
 
-#include "rclcpp/rclcpp.hpp"
-
-#include "test_constants/test_constants.h"
 #include "nav2_map_server/map_saver.hpp"
-#include "nav2_util/lifecycle_service_client.hpp"
 #include "nav2_msgs/srv/save_map.hpp"
+#include "nav2_util/lifecycle_service_client.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "test_constants/test_constants.h"
 
 #define TEST_DIR TEST_DIRECTORY
 
-using std::experimental::filesystem::path;
 using lifecycle_msgs::msg::Transition;
+using std::experimental::filesystem::path;
 using namespace nav2_map_server;  // NOLINT
 
-class RclCppFixture
-{
-public:
-  RclCppFixture() {rclcpp::init(0, nullptr);}
-  ~RclCppFixture() {rclcpp::shutdown();}
+class RclCppFixture {
+ public:
+  RclCppFixture() { rclcpp::init(0, nullptr); }
+  ~RclCppFixture() { rclcpp::shutdown(); }
 };
 
 RclCppFixture g_rclcppfixture;
 
-class MapSaverTestFixture : public ::testing::Test
-{
-public:
-  static void SetUpTestCase()
-  {
+class MapSaverTestFixture : public ::testing::Test {
+ public:
+  static void SetUpTestCase() {
     node_ = rclcpp::Node::make_shared("map_client_test");
-    lifecycle_client_ =
-      std::make_shared<nav2_util::LifecycleServiceClient>("map_saver", node_);
+    lifecycle_client_ = std::make_shared<nav2_util::LifecycleServiceClient>("map_saver", node_);
     RCLCPP_INFO(node_->get_logger(), "Creating Test Node");
 
     std::this_thread::sleep_for(std::chrono::seconds(5));  // allow node to start up
@@ -58,21 +52,18 @@ public:
     lifecycle_client_->change_state(Transition::TRANSITION_ACTIVATE, timeout);
   }
 
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     lifecycle_client_->change_state(Transition::TRANSITION_DEACTIVATE);
     lifecycle_client_->change_state(Transition::TRANSITION_CLEANUP);
     lifecycle_client_.reset();
     node_.reset();
   }
 
-  template<class T>
+  template <class T>
   typename T::Response::SharedPtr send_request(
 
-    rclcpp::Node::SharedPtr node,
-    typename rclcpp::Client<T>::SharedPtr client,
-    typename T::Request::SharedPtr request)
-  {
+      rclcpp::Node::SharedPtr node, typename rclcpp::Client<T>::SharedPtr client,
+      typename T::Request::SharedPtr request) {
     auto result = client->async_send_request(request);
 
     // Wait for the result
@@ -83,11 +74,10 @@ public:
     }
   }
 
-protected:
+ protected:
   // Check that map_msg corresponds to reference pattern
   // Input: map_msg
-  void verifyMapMsg(const nav_msgs::msg::OccupancyGrid & map_msg)
-  {
+  void verifyMapMsg(const nav_msgs::msg::OccupancyGrid& map_msg) {
     ASSERT_FLOAT_EQ(map_msg.info.resolution, g_valid_image_res);
     ASSERT_EQ(map_msg.info.width, g_valid_image_width);
     ASSERT_EQ(map_msg.info.height, g_valid_image_height);
@@ -100,19 +90,15 @@ protected:
   static std::shared_ptr<nav2_util::LifecycleServiceClient> lifecycle_client_;
 };
 
-
 rclcpp::Node::SharedPtr MapSaverTestFixture::node_ = nullptr;
-std::shared_ptr<nav2_util::LifecycleServiceClient> MapSaverTestFixture::lifecycle_client_ =
-  nullptr;
+std::shared_ptr<nav2_util::LifecycleServiceClient> MapSaverTestFixture::lifecycle_client_ = nullptr;
 
 // Send map saving service request.
 // Load saved map and verify obtained OccupancyGrid.
-TEST_F(MapSaverTestFixture, SaveMap)
-{
+TEST_F(MapSaverTestFixture, SaveMap) {
   RCLCPP_INFO(node_->get_logger(), "Testing SaveMap service");
   auto req = std::make_shared<nav2_msgs::srv::SaveMap::Request>();
-  auto client = node_->create_client<nav2_msgs::srv::SaveMap>(
-    "/map_saver/save_map");
+  auto client = node_->create_client<nav2_msgs::srv::SaveMap>("/map_saver/save_map");
 
   RCLCPP_INFO(node_->get_logger(), "Waiting for save_map service");
   ASSERT_TRUE(client->wait_for_service());
@@ -136,12 +122,10 @@ TEST_F(MapSaverTestFixture, SaveMap)
 
 // Send map saving service request with default parameters.
 // Load saved map and verify obtained OccupancyGrid.
-TEST_F(MapSaverTestFixture, SaveMapDefaultParameters)
-{
+TEST_F(MapSaverTestFixture, SaveMapDefaultParameters) {
   RCLCPP_INFO(node_->get_logger(), "Testing SaveMap service");
   auto req = std::make_shared<nav2_msgs::srv::SaveMap::Request>();
-  auto client = node_->create_client<nav2_msgs::srv::SaveMap>(
-    "/map_saver/save_map");
+  auto client = node_->create_client<nav2_msgs::srv::SaveMap>("/map_saver/save_map");
 
   RCLCPP_INFO(node_->get_logger(), "Waiting for save_map service");
   ASSERT_TRUE(client->wait_for_service());
@@ -166,12 +150,10 @@ TEST_F(MapSaverTestFixture, SaveMapDefaultParameters)
 // Send map saving service requests with different sets of parameters.
 // In case of map is expected to be saved correctly, load map from a saved
 // file and verify obtained OccupancyGrid.
-TEST_F(MapSaverTestFixture, SaveMapInvalidParameters)
-{
+TEST_F(MapSaverTestFixture, SaveMapInvalidParameters) {
   RCLCPP_INFO(node_->get_logger(), "Testing SaveMap service");
   auto req = std::make_shared<nav2_msgs::srv::SaveMap::Request>();
-  auto client = node_->create_client<nav2_msgs::srv::SaveMap>(
-    "/map_saver/save_map");
+  auto client = node_->create_client<nav2_msgs::srv::SaveMap>("/map_saver/save_map");
 
   RCLCPP_INFO(node_->get_logger(), "Waiting for save_map service");
   ASSERT_TRUE(client->wait_for_service());

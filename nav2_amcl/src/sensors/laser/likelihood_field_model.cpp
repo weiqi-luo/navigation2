@@ -19,39 +19,34 @@
  *
  */
 
-#include <math.h>
 #include <assert.h>
+#include <math.h>
 
 #include "nav2_amcl/sensors/laser/laser.hpp"
 
-namespace nav2_amcl
-{
+namespace nav2_amcl {
 
-LikelihoodFieldModel::LikelihoodFieldModel(
-  double z_hit, double z_rand, double sigma_hit,
-  double max_occ_dist, size_t max_beams, map_t * map)
-: Laser(max_beams, map)
-{
+LikelihoodFieldModel::LikelihoodFieldModel(double z_hit, double z_rand, double sigma_hit,
+    double max_occ_dist, size_t max_beams, map_t* map)
+    : Laser(max_beams, map) {
   z_hit_ = z_hit;
   z_rand_ = z_rand;
   sigma_hit_ = sigma_hit;
   map_update_cspace(map, max_occ_dist);
 }
 
-double
-LikelihoodFieldModel::sensorFunction(LaserData * data, pf_sample_set_t * set)
-{
-  LikelihoodFieldModel * self;
+double LikelihoodFieldModel::sensorFunction(LaserData* data, pf_sample_set_t* set) {
+  LikelihoodFieldModel* self;
   int i, j, step;
   double z, pz;
   double p;
   double obs_range, obs_bearing;
   double total_weight;
-  pf_sample_t * sample;
+  pf_sample_t* sample;
   pf_vector_t pose;
   pf_vector_t hit;
 
-  self = reinterpret_cast<LikelihoodFieldModel *>(data->laser);
+  self = reinterpret_cast<LikelihoodFieldModel*>(data->laser);
 
   // Pre-compute a couple of things
   double z_hit_denom = 2 * self->sigma_hit_ * self->sigma_hit_;
@@ -131,14 +126,11 @@ LikelihoodFieldModel::sensorFunction(LaserData * data, pf_sample_set_t * set)
   return total_weight;
 }
 
-
-bool
-LikelihoodFieldModel::sensorUpdate(pf_t * pf, LaserData * data)
-{
+bool LikelihoodFieldModel::sensorUpdate(pf_t* pf, LaserData* data) {
   if (max_beams_ < 2) {
     return false;
   }
-  pf_update_sensor(pf, (pf_sensor_model_fn_t) sensorFunction, data);
+  pf_update_sensor(pf, (pf_sensor_model_fn_t)sensorFunction, data);
 
   return true;
 }

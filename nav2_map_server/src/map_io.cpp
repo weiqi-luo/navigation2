@@ -34,37 +34,36 @@
 #ifndef _WIN32
 #include <libgen.h>
 #endif
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <stdexcept>
-#include <cstdlib>
 
 #include "Magick++.h"
 #include "nav2_util/geometry_utils.hpp"
-
-#include "yaml-cpp/yaml.h"
+#include "nav2_util/occ_grid_values.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
-#include "nav2_util/occ_grid_values.hpp"
+#include "yaml-cpp/yaml.h"
 
 #ifdef _WIN32
 // https://github.com/rtv/Stage/blob/master/replace/dirname.c
-static
-char * dirname(char * path)
-{
+static char* dirname(char* path) {
   static const char dot[] = ".";
-  char * last_slash;
+  char* last_slash;
 
   if (path == NULL) {
     return path;
   }
 
   /* Replace all "\" with "/" */
-  char * c = path;
+  char* c = path;
   while (*c != '\0') {
-    if (*c == '\\') {*c = '/';}
+    if (*c == '\\') {
+      *c = '/';
+    }
     ++c;
   }
 
@@ -77,7 +76,7 @@ char * dirname(char * path)
     ++last_slash;
   } else if (last_slash != NULL && last_slash[1] == '\0') {
     /* The '/' is the last character, we have to look further.  */
-    last_slash = reinterpret_cast<char *>(memchr(path, last_slash - path, '/'));
+    last_slash = reinterpret_cast<char*>(memchr(path, last_slash - path, '/'));
   }
 
   if (last_slash != NULL) {
@@ -87,15 +86,14 @@ char * dirname(char * path)
     /* This assignment is ill-designed but the XPG specs require to
        return a string containing "." in any case no directory part is
        found and so a static and constant string is required.  */
-    path = reinterpret_cast<char *>(dot);
+    path = reinterpret_cast<char*>(dot);
   }
 
   return path;
 }
 #endif
 
-namespace nav2_map_server
-{
+namespace nav2_map_server {
 using nav2_util::geometry_utils::orientationAroundZAxis;
 
 // === Map input part ===
@@ -104,30 +102,26 @@ using nav2_util::geometry_utils::orientationAroundZAxis;
 /// The only reason this function exists is to wrap the exceptions in slightly nicer error messages,
 /// including the name of the failed key
 /// @throw YAML::Exception
-template<typename T>
-T yaml_get_value(const YAML::Node & node, const std::string & key)
-{
+template <typename T>
+T yaml_get_value(const YAML::Node& node, const std::string& key) {
   try {
     return node[key].as<T>();
-  } catch (YAML::Exception & e) {
+  } catch (YAML::Exception& e) {
     std::stringstream ss;
     ss << "Failed to parse YAML tag '" << key << "' for reason: " << e.msg;
     throw YAML::Exception(e.mark, ss.str());
   }
 }
 
-std::string get_home_dir()
-{
-  if (const char * home_dir = std::getenv("HOME")) {
+std::string get_home_dir() {
+  if (const char* home_dir = std::getenv("HOME")) {
     return std::string{home_dir};
   }
   return std::string{};
 }
 
 std::string expand_user_home_dir_if_needed(
-  std::string yaml_filename,
-  std::string home_variable_value)
-{
+    std::string yaml_filename, std::string home_variable_value) {
   if (yaml_filename.size() < 2 || !(yaml_filename[0] == '~' && yaml_filename[1] == '/')) {
     return yaml_filename;
   }
@@ -140,8 +134,7 @@ std::string expand_user_home_dir_if_needed(
   return yaml_filename.replace(0, 1, prefix);
 }
 
-LoadParameters loadMapYaml(const std::string & yaml_filename)
-{
+LoadParameters loadMapYaml(const std::string& yaml_filename) {
   YAML::Node doc = YAML::LoadFile(expand_user_home_dir_if_needed(yaml_filename, get_home_dir()));
   LoadParameters load_parameters;
 
@@ -161,8 +154,8 @@ LoadParameters loadMapYaml(const std::string & yaml_filename)
   load_parameters.origin = yaml_get_value<std::vector<double>>(doc, "origin");
   if (load_parameters.origin.size() != 3) {
     throw YAML::Exception(
-            doc["origin"].Mark(), "value of the 'origin' tag should have 3 elements, not " +
-            std::to_string(load_parameters.origin.size()));
+        doc["origin"].Mark(), "value of the 'origin' tag should have 3 elements, not " +
+                                  std::to_string(load_parameters.origin.size()));
   }
 
   load_parameters.free_thresh = yaml_get_value<double>(doc, "free_thresh");
@@ -177,7 +170,7 @@ LoadParameters loadMapYaml(const std::string & yaml_filename)
 
   try {
     load_parameters.negate = yaml_get_value<int>(doc, "negate");
-  } catch (YAML::Exception &) {
+  } catch (YAML::Exception&) {
     load_parameters.negate = yaml_get_value<bool>(doc, "negate");
   }
 
@@ -186,23 +179,20 @@ LoadParameters loadMapYaml(const std::string & yaml_filename)
   std::cout << "[DEBUG] [map_io]: origin[1]: " << load_parameters.origin[1] << std::endl;
   std::cout << "[DEBUG] [map_io]: origin[2]: " << load_parameters.origin[2] << std::endl;
   std::cout << "[DEBUG] [map_io]: free_thresh: " << load_parameters.free_thresh << std::endl;
-  std::cout << "[DEBUG] [map_io]: occupied_thresh: " << load_parameters.occupied_thresh <<
-    std::endl;
+  std::cout << "[DEBUG] [map_io]: occupied_thresh: " << load_parameters.occupied_thresh
+            << std::endl;
   std::cout << "[DEBUG] [map_io]: mode: " << map_mode_to_string(load_parameters.mode) << std::endl;
-  std::cout << "[DEBUG] [map_io]: negate: " << load_parameters.negate << std::endl;  //NOLINT
+  std::cout << "[DEBUG] [map_io]: negate: " << load_parameters.negate << std::endl;  // NOLINT
 
   return load_parameters;
 }
 
-void loadMapFromFile(
-  const LoadParameters & load_parameters,
-  nav_msgs::msg::OccupancyGrid & map)
-{
+void loadMapFromFile(const LoadParameters& load_parameters, nav_msgs::msg::OccupancyGrid& map) {
   Magick::InitializeMagick(nullptr);
   nav_msgs::msg::OccupancyGrid msg;
 
-  std::cout << "[INFO] [map_io]: Loading image_file: " <<
-    load_parameters.image_file_name << std::endl;
+  std::cout << "[INFO] [map_io]: Loading image_file: " << load_parameters.image_file_name
+            << std::endl;
   Magick::Image img(load_parameters.image_file_name);
 
   // Copy the image data into the map structure
@@ -223,8 +213,8 @@ void loadMapFromFile(
     for (size_t x = 0; x < msg.info.width; x++) {
       auto pixel = img.pixelColor(x, y);
 
-      std::vector<Magick::Quantum> channels = {pixel.redQuantum(), pixel.greenQuantum(),
-        pixel.blueQuantum()};
+      std::vector<Magick::Quantum> channels = {
+          pixel.redQuantum(), pixel.greenQuantum(), pixel.blueQuantum()};
       if (load_parameters.mode == MapMode::Trinary && img.matte()) {
         // To preserve existing behavior, average in alpha with color channels in Trinary mode.
         // CAREFUL. alpha is inverted from what you might expect. High = transparent, low = opaque
@@ -261,22 +251,21 @@ void loadMapFromFile(
           } else if (occ < load_parameters.free_thresh) {
             map_cell = nav2_util::OCC_GRID_FREE;
           } else {
-            map_cell = std::rint(
-              (occ - load_parameters.free_thresh) /
-              (load_parameters.occupied_thresh - load_parameters.free_thresh) * 100.0);
+            map_cell =
+                std::rint((occ - load_parameters.free_thresh) /
+                          (load_parameters.occupied_thresh - load_parameters.free_thresh) * 100.0);
           }
           break;
         case MapMode::Raw: {
-            double occ_percent = std::round(shade * 255);
-            if (nav2_util::OCC_GRID_FREE <= occ_percent &&
-              occ_percent <= nav2_util::OCC_GRID_OCCUPIED)
-            {
-              map_cell = static_cast<int8_t>(occ_percent);
-            } else {
-              map_cell = nav2_util::OCC_GRID_UNKNOWN;
-            }
-            break;
+          double occ_percent = std::round(shade * 255);
+          if (nav2_util::OCC_GRID_FREE <= occ_percent &&
+              occ_percent <= nav2_util::OCC_GRID_OCCUPIED) {
+            map_cell = static_cast<int8_t>(occ_percent);
+          } else {
+            map_cell = nav2_util::OCC_GRID_UNKNOWN;
           }
+          break;
+        }
         default:
           throw std::runtime_error("Invalid map mode");
       }
@@ -290,17 +279,14 @@ void loadMapFromFile(
   msg.header.frame_id = "map";
   msg.header.stamp = clock.now();
 
-  std::cout <<
-    "[DEBUG] [map_io]: Read map " << load_parameters.image_file_name << ": " << msg.info.width <<
-    " X " << msg.info.height << " map @ " << msg.info.resolution << " m/cell" << std::endl;
+  std::cout << "[DEBUG] [map_io]: Read map " << load_parameters.image_file_name << ": "
+            << msg.info.width << " X " << msg.info.height << " map @ " << msg.info.resolution
+            << " m/cell" << std::endl;
 
   map = msg;
 }
 
-LOAD_MAP_STATUS loadMapFromYaml(
-  const std::string & yaml_file,
-  nav_msgs::msg::OccupancyGrid & map)
-{
+LOAD_MAP_STATUS loadMapFromYaml(const std::string& yaml_file, nav_msgs::msg::OccupancyGrid& map) {
   if (yaml_file.empty()) {
     std::cerr << "[ERROR] [map_io]: YAML file name is empty, can't load!" << std::endl;
     return MAP_DOES_NOT_EXIST;
@@ -309,23 +295,20 @@ LOAD_MAP_STATUS loadMapFromYaml(
   LoadParameters load_parameters;
   try {
     load_parameters = loadMapYaml(yaml_file);
-  } catch (YAML::Exception & e) {
-    std::cerr <<
-      "[ERROR] [map_io]: Failed processing YAML file " << yaml_file << " at position (" <<
-      e.mark.line << ":" << e.mark.column << ") for reason: " << e.what() << std::endl;
+  } catch (YAML::Exception& e) {
+    std::cerr << "[ERROR] [map_io]: Failed processing YAML file " << yaml_file << " at position ("
+              << e.mark.line << ":" << e.mark.column << ") for reason: " << e.what() << std::endl;
     return INVALID_MAP_METADATA;
-  } catch (std::exception & e) {
-    std::cerr <<
-      "[ERROR] [map_io]: Failed to parse map YAML loaded from file " << yaml_file <<
-      " for reason: " << e.what() << std::endl;
+  } catch (std::exception& e) {
+    std::cerr << "[ERROR] [map_io]: Failed to parse map YAML loaded from file " << yaml_file
+              << " for reason: " << e.what() << std::endl;
     return INVALID_MAP_METADATA;
   }
   try {
     loadMapFromFile(load_parameters, map);
-  } catch (std::exception & e) {
-    std::cerr <<
-      "[ERROR] [map_io]: Failed to load image file " << load_parameters.image_file_name <<
-      " for reason: " << e.what() << std::endl;
+  } catch (std::exception& e) {
+    std::cerr << "[ERROR] [map_io]: Failed to load image file " << load_parameters.image_file_name
+              << " for reason: " << e.what() << std::endl;
     return INVALID_MAP_DATA;
   }
 
@@ -340,30 +323,29 @@ LOAD_MAP_STATUS loadMapFromYaml(
  * NOTE: save_parameters could be updated during function execution.
  * @throw std::exception in case of inconsistent parameters
  */
-void checkSaveParameters(SaveParameters & save_parameters)
-{
+void checkSaveParameters(SaveParameters& save_parameters) {
   // Magick must me initialized before any activity with images
   Magick::InitializeMagick(nullptr);
 
   // Checking map file name
   if (save_parameters.map_file_name == "") {
     rclcpp::Clock clock(RCL_SYSTEM_TIME);
-    save_parameters.map_file_name = "map_" +
-      std::to_string(static_cast<int>(clock.now().seconds()));
-    std::cout << "[WARN] [map_io]: Map file unspecified. Map will be saved to " <<
-      save_parameters.map_file_name << " file" << std::endl;
+    save_parameters.map_file_name =
+        "map_" + std::to_string(static_cast<int>(clock.now().seconds()));
+    std::cout << "[WARN] [map_io]: Map file unspecified. Map will be saved to "
+              << save_parameters.map_file_name << " file" << std::endl;
   }
 
   // Checking thresholds
   if (save_parameters.occupied_thresh == 0.0) {
     save_parameters.occupied_thresh = 0.65;
-    std::cout << "[WARN] [map_io]: Occupied threshold unspecified. Setting it to default value: " <<
-      save_parameters.occupied_thresh << std::endl;
+    std::cout << "[WARN] [map_io]: Occupied threshold unspecified. Setting it to default value: "
+              << save_parameters.occupied_thresh << std::endl;
   }
   if (save_parameters.free_thresh == 0.0) {
     save_parameters.free_thresh = 0.25;
-    std::cout << "[WARN] [map_io]: Free threshold unspecified. Setting it to default value: " <<
-      save_parameters.free_thresh << std::endl;
+    std::cout << "[WARN] [map_io]: Free threshold unspecified. Setting it to default value: "
+              << save_parameters.free_thresh << std::endl;
   }
   if (1.0 < save_parameters.occupied_thresh) {
     std::cerr << "[ERROR] [map_io]: Threshold_occupied must be 1.0 or less" << std::endl;
@@ -374,70 +356,59 @@ void checkSaveParameters(SaveParameters & save_parameters)
     throw std::runtime_error("Incorrect thresholds");
   }
   if (save_parameters.occupied_thresh <= save_parameters.free_thresh) {
-    std::cerr << "[ERROR] [map_io]: Threshold_free must be smaller than threshold_occupied" <<
-      std::endl;
+    std::cerr << "[ERROR] [map_io]: Threshold_free must be smaller than threshold_occupied"
+              << std::endl;
     throw std::runtime_error("Incorrect thresholds");
   }
 
   // Checking image format
   if (save_parameters.image_format == "") {
     save_parameters.image_format = save_parameters.mode == MapMode::Scale ? "png" : "pgm";
-    std::cout << "[WARN] [map_io]: Image format unspecified. Setting it to: " <<
-      save_parameters.image_format << std::endl;
+    std::cout << "[WARN] [map_io]: Image format unspecified. Setting it to: "
+              << save_parameters.image_format << std::endl;
   }
 
-  std::transform(
-    save_parameters.image_format.begin(),
-    save_parameters.image_format.end(),
-    save_parameters.image_format.begin(),
-    [](unsigned char c) {return std::tolower(c);});
+  std::transform(save_parameters.image_format.begin(), save_parameters.image_format.end(),
+      save_parameters.image_format.begin(), [](unsigned char c) { return std::tolower(c); });
 
   const std::vector<std::string> BLESSED_FORMATS{"bmp", "pgm", "png"};
-  if (
-    std::find(BLESSED_FORMATS.begin(), BLESSED_FORMATS.end(), save_parameters.image_format) ==
-    BLESSED_FORMATS.end())
-  {
+  if (std::find(BLESSED_FORMATS.begin(), BLESSED_FORMATS.end(), save_parameters.image_format) ==
+      BLESSED_FORMATS.end()) {
     std::stringstream ss;
     bool first = true;
-    for (auto & format_name : BLESSED_FORMATS) {
+    for (auto& format_name : BLESSED_FORMATS) {
       if (!first) {
         ss << ", ";
       }
       ss << "'" << format_name << "'";
       first = false;
     }
-    std::cout <<
-      "[WARN] [map_io]: Requested image format '" << save_parameters.image_format <<
-      "' is not one of the recommended formats: " << ss.str() << std::endl;
+    std::cout << "[WARN] [map_io]: Requested image format '" << save_parameters.image_format
+              << "' is not one of the recommended formats: " << ss.str() << std::endl;
   }
   const std::string FALLBACK_FORMAT = "png";
 
   try {
     Magick::CoderInfo info(save_parameters.image_format);
     if (!info.isWritable()) {
-      std::cout <<
-        "[WARN] [map_io]: Format '" << save_parameters.image_format <<
-        "' is not writable. Using '" << FALLBACK_FORMAT << "' instead" << std::endl;
+      std::cout << "[WARN] [map_io]: Format '" << save_parameters.image_format
+                << "' is not writable. Using '" << FALLBACK_FORMAT << "' instead" << std::endl;
       save_parameters.image_format = FALLBACK_FORMAT;
     }
-  } catch (Magick::ErrorOption & e) {
-    std::cout <<
-      "[WARN] [map_io]: Format '" << save_parameters.image_format << "' is not usable. Using '" <<
-      FALLBACK_FORMAT << "' instead:" << std::endl << e.what() << std::endl;
+  } catch (Magick::ErrorOption& e) {
+    std::cout << "[WARN] [map_io]: Format '" << save_parameters.image_format
+              << "' is not usable. Using '" << FALLBACK_FORMAT << "' instead:" << std::endl
+              << e.what() << std::endl;
     save_parameters.image_format = FALLBACK_FORMAT;
   }
 
   // Checking map mode
-  if (
-    save_parameters.mode == MapMode::Scale &&
-    (save_parameters.image_format == "pgm" ||
-    save_parameters.image_format == "jpg" ||
-    save_parameters.image_format == "jpeg"))
-  {
-    std::cout <<
-      "[WARN] [map_io]: Map mode 'scale' requires transparency, but format '" <<
-      save_parameters.image_format <<
-      "' does not support it. Consider switching image format to 'png'." << std::endl;
+  if (save_parameters.mode == MapMode::Scale &&
+      (save_parameters.image_format == "pgm" || save_parameters.image_format == "jpg" ||
+          save_parameters.image_format == "jpeg")) {
+    std::cout << "[WARN] [map_io]: Map mode 'scale' requires transparency, but format '"
+              << save_parameters.image_format
+              << "' does not support it. Consider switching image format to 'png'." << std::endl;
   }
 }
 
@@ -448,12 +419,9 @@ void checkSaveParameters(SaveParameters & save_parameters)
  * @throw std::expection in case of problem
  */
 void tryWriteMapToFile(
-  const nav_msgs::msg::OccupancyGrid & map,
-  const SaveParameters & save_parameters)
-{
-  std::cout <<
-    "[INFO] [map_io]: Received a " << map.info.width << " X " << map.info.height << " map @ " <<
-    map.info.resolution << " m/pix" << std::endl;
+    const nav_msgs::msg::OccupancyGrid& map, const SaveParameters& save_parameters) {
+  std::cout << "[INFO] [map_io]: Received a " << map.info.width << " X " << map.info.height
+            << " map @ " << map.info.resolution << " m/pix" << std::endl;
 
   std::string mapdatafile = save_parameters.map_file_name + "." + save_parameters.image_format;
   {
@@ -463,9 +431,8 @@ void tryWriteMapToFile(
     // In scale mode, we need the alpha (matte) channel. Else, we don't.
     // NOTE: GraphicsMagick seems to have trouble loading the alpha channel when saved with
     // Magick::GreyscaleMatte, so we use TrueColorMatte instead.
-    image.type(
-      save_parameters.mode == MapMode::Scale ?
-      Magick::TrueColorMatteType : Magick::GrayscaleType);
+    image.type(save_parameters.mode == MapMode::Scale ? Magick::TrueColorMatteType
+                                                      : Magick::GrayscaleType);
 
     // Since we only need to support 100 different pixel levels, 8 bits is fine
     image.depth(8);
@@ -538,16 +505,15 @@ void tryWriteMapToFile(
     e << YAML::Key << "image" << YAML::Value << image_name;
     e << YAML::Key << "mode" << YAML::Value << map_mode_to_string(save_parameters.mode);
     e << YAML::Key << "resolution" << YAML::Value << map.info.resolution;
-    e << YAML::Key << "origin" << YAML::Flow << YAML::BeginSeq << map.info.origin.position.x <<
-      map.info.origin.position.y << yaw << YAML::EndSeq;
+    e << YAML::Key << "origin" << YAML::Flow << YAML::BeginSeq << map.info.origin.position.x
+      << map.info.origin.position.y << yaw << YAML::EndSeq;
     e << YAML::Key << "negate" << YAML::Value << 0;
     e << YAML::Key << "occupied_thresh" << YAML::Value << save_parameters.occupied_thresh;
     e << YAML::Key << "free_thresh" << YAML::Value << save_parameters.free_thresh;
 
     if (!e.good()) {
-      std::cout <<
-        "[WARN] [map_io]: YAML writer failed with an error " << e.GetLastError() <<
-        ". The map metadata may be invalid." << std::endl;
+      std::cout << "[WARN] [map_io]: YAML writer failed with an error " << e.GetLastError()
+                << ". The map metadata may be invalid." << std::endl;
     }
 
     std::cout << "[INFO] [map_io]: Writing map metadata to " << mapmetadatafile << std::endl;
@@ -556,10 +522,7 @@ void tryWriteMapToFile(
   std::cout << "[INFO] [map_io]: Map saved" << std::endl;
 }
 
-bool saveMapToFile(
-  const nav_msgs::msg::OccupancyGrid & map,
-  const SaveParameters & save_parameters)
-{
+bool saveMapToFile(const nav_msgs::msg::OccupancyGrid& map, const SaveParameters& save_parameters) {
   // Local copy of SaveParameters that might be modified by checkSaveParameters()
   SaveParameters save_parameters_loc = save_parameters;
 
@@ -568,7 +531,7 @@ bool saveMapToFile(
     checkSaveParameters(save_parameters_loc);
 
     tryWriteMapToFile(map, save_parameters_loc);
-  } catch (std::exception & e) {
+  } catch (std::exception& e) {
     std::cout << "[ERROR] [map_io]: Failed to write map for reason: " << e.what() << std::endl;
     return false;
   }
