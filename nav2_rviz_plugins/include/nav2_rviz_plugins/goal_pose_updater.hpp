@@ -17,24 +17,21 @@
 
 #include <QObject>
 
-namespace nav2_rviz_plugins
-{
+namespace nav2_rviz_plugins {
 
 /// Class to set and update goal pose by emitting signal
-class GoalPoseUpdater : public QObject
-{
+class GoalPoseUpdater : public QObject {
   Q_OBJECT
 
-public:
+ public:
   GoalPoseUpdater() {}
   ~GoalPoseUpdater() {}
 
-  void setGoal(double x, double y, double theta, QString frame)
-  {
+  void setGoal(double x, double y, double theta, QString frame) {
     emit updateGoal(x, y, theta, frame);
   }
 
-signals:
+ signals:
   void updateGoal(double x, double y, double theta, QString frame);
 };
 

@@ -24,16 +24,14 @@
 
 #include <math.h>
 
-namespace nav2_amcl
-{
+namespace nav2_amcl {
 
 /*
  * @class angleutils
  * @brief Some utilities for working with angles
  */
-class angleutils
-{
-public:
+class angleutils {
+ public:
   /*
    * @brief Normalize angles
    * @brief z Angle to normalize
@@ -50,15 +48,9 @@ public:
   static double angle_diff(double a, double b);
 };
 
-inline double
-angleutils::normalize(double z)
-{
-  return atan2(sin(z), cos(z));
-}
+inline double angleutils::normalize(double z) { return atan2(sin(z), cos(z)); }
 
-inline double
-angleutils::angle_diff(double a, double b)
-{
+inline double angleutils::angle_diff(double a, double b) {
   a = normalize(a);
   b = normalize(b);
   double d1 = a - b;
