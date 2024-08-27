@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "iw_navigation_interfaces/msg/initial_pose.hpp"
 #include "message_filters/subscriber.h"
 #include "nav2_amcl/motion_model/motion_model.hpp"
 #include "nav2_amcl/sensors/laser/laser.hpp"
@@ -186,10 +187,17 @@ class AmclNode : public nav2_util::LifecycleNode {
       pose_pub_;
   rclcpp_lifecycle::LifecyclePublisher<nav2_msgs::msg::ParticleCloud>::SharedPtr
       particle_cloud_pub_;
+  /// Subscriber to the relocalize trigger from the cloud
+  rclcpp::Subscription<iw_navigation_interfaces::msg::InitialPose>::SharedPtr
+      rx_relocalize_trigger_;
   /*
    * @brief Handle with an initial pose estimate is received
    */
   void initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+  /*
+   * @brief Handle with an initial pose estimate is received
+   */
+  void initialPoseReceivedIw(iw_navigation_interfaces::msg::InitialPose::SharedPtr msg);
   /*
    * @brief Handle when a laser scan is received
    */

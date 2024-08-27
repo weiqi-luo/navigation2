@@ -284,6 +284,7 @@ nav2_util::CallbackReturn AmclNode::on_cleanup(const rclcpp_lifecycle::State& /*
   nomotion_update_srv_.reset();
   executor_thread_.reset();  //  to make sure initial_pose_sub_ completely exit
   initial_pose_sub_.reset();
+  rx_relocalize_trigger_.reset();
   laser_scan_connection_.disconnect();
   tf_listener_.reset();  //  listener may access lase_scan_filter_, so it should be reset earlier
   laser_scan_filter_.reset();
@@ -443,6 +444,17 @@ void AmclNode::nomotionUpdateCallback(const std::shared_ptr<rmw_request_id_t> /*
   force_update_ = true;
 }
 
+void AmclNode::initialPoseReceivedIw(iw_navigation_interfaces::msg::InitialPose::SharedPtr msg) {
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr pose_msg =
+      std::make_shared<geometry_msgs::msg::PoseWithCovarianceStamped>();
+  pose_msg->header = msg->pose.header;
+  pose_msg->pose.pose = msg->pose.pose;
+  pose_msg->pose.covariance[0] = 0.25;
+  pose_msg->pose.covariance[7] = 0.25;
+  pose_msg->pose.covariance[35] = 0.06853891909122467;
+  initialPoseReceived(pose_msg);
+}
+
 void AmclNode::initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
 
@@ -454,7 +466,8 @@ void AmclNode::initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped
   }
   if (nav2_util::strip_leading_slash(msg->header.frame_id) != global_frame_id_) {
     RCLCPP_WARN(get_logger(),
-        "Ignoring initial pose in frame \"%s\"; initial poses must be in the global frame, \"%s\"",
+        "Ignoring initial pose in frame \"%s\"; initial poses must be in the global frame, "
+        "\"%s\"",
         nav2_util::strip_leading_slash(msg->header.frame_id).c_str(), global_frame_id_.c_str());
     return;
   }
@@ -1386,6 +1399,10 @@ void AmclNode::initPubSub() {
   initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
       "initialpose", rclcpp::SystemDefaultsQoS(),
       std::bind(&AmclNode::initialPoseReceived, this, std::placeholders::_1));
+
+  rx_relocalize_trigger_ = create_subscription<iw_navigation_interfaces::msg::InitialPose>(
+      "/navigation/set_initial_pose", rclcpp::SystemDefaultsQoS(),
+      std::bind(&AmclNode::initialPoseReceivedIw, this, std::placeholders::_1));
 
   map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(map_topic_,
       rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
