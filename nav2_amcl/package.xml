@@ -11,7 +11,7 @@
       particle filter to track the pose of a robot against a known map.
     </p>
     <p>
-      This node is derived, with thanks, from Andrew Howard's excellent
+    This node is derived, with thanks, from Andrew Howard's excellent
       'amcl' Player driver.
     </p>
   </description>

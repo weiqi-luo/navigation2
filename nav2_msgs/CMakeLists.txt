@@ -13,10 +13,12 @@ find_package(action_msgs REQUIRED)
 
 nav2_package()
 
-# TODO(jwallace42): This is a work around for https://github.com/ros2/rosidl_typesupport_fastrtps/issues/28
+# TODO(jwallace42): This is a work around for
+# https://github.com/ros2/rosidl_typesupport_fastrtps/issues/28
 add_compile_options(-Wno-error=deprecated)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+rosidl_generate_interfaces(
+  ${PROJECT_NAME}
   "msg/CollisionMonitorState.msg"
   "msg/CollisionDetectorState.msg"
   "msg/Costmap.msg"
@@ -52,8 +54,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/DummyBehavior.action"
   "action/FollowWaypoints.action"
   "action/FollowGPSWaypoints.action"
-  DEPENDENCIES builtin_interfaces geometry_msgs std_msgs action_msgs nav_msgs geographic_msgs
-)
+  DEPENDENCIES
+  builtin_interfaces
+  geometry_msgs
+  std_msgs
+  action_msgs
+  nav_msgs
+  geographic_msgs)
 
 ament_export_dependencies(rosidl_default_runtime)
 

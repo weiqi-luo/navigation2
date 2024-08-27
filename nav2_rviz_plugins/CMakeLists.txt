@@ -34,64 +34,55 @@ find_package(visualization_msgs REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 
 set(nav2_rviz_plugins_headers_to_moc
-  include/nav2_rviz_plugins/goal_pose_updater.hpp
-  include/nav2_rviz_plugins/goal_common.hpp
-  include/nav2_rviz_plugins/goal_tool.hpp
-  include/nav2_rviz_plugins/nav2_panel.hpp
-  include/nav2_rviz_plugins/particle_cloud_display/flat_weighted_arrows_array.hpp
-  include/nav2_rviz_plugins/particle_cloud_display/particle_cloud_display.hpp
-)
+    include/nav2_rviz_plugins/goal_pose_updater.hpp
+    include/nav2_rviz_plugins/goal_common.hpp
+    include/nav2_rviz_plugins/goal_tool.hpp
+    include/nav2_rviz_plugins/nav2_panel.hpp
+    include/nav2_rviz_plugins/particle_cloud_display/flat_weighted_arrows_array.hpp
+    include/nav2_rviz_plugins/particle_cloud_display/particle_cloud_display.hpp)
 
-include_directories(
-  include
-)
+include_directories(include)
 
 set(library_name ${PROJECT_NAME})
 
-add_library(${library_name} SHARED
+add_library(
+  ${library_name} SHARED
   src/goal_tool.cpp
   src/nav2_panel.cpp
   src/particle_cloud_display/flat_weighted_arrows_array.cpp
   src/particle_cloud_display/particle_cloud_display.cpp
-  ${nav2_rviz_plugins_headers_to_moc}
-)
+  ${nav2_rviz_plugins_headers_to_moc})
 
 set(dependencies
-  geometry_msgs
-  nav2_util
-  nav2_lifecycle_manager
-  nav2_msgs
-  nav_msgs
-  pluginlib
-  Qt5
-  rclcpp
-  rclcpp_lifecycle
-  rviz_common
-  rviz_default_plugins
-  rviz_ogre_vendor
-  rviz_rendering
-  std_msgs
-  tf2_geometry_msgs
-  yaml_cpp_vendor
-)
+    geometry_msgs
+    nav2_util
+    nav2_lifecycle_manager
+    nav2_msgs
+    nav_msgs
+    pluginlib
+    Qt5
+    rclcpp
+    rclcpp_lifecycle
+    rviz_common
+    rviz_default_plugins
+    rviz_ogre_vendor
+    rviz_rendering
+    std_msgs
+    tf2_geometry_msgs
+    yaml_cpp_vendor)
 
-ament_target_dependencies(${library_name}
-  ${dependencies}
-)
+ament_target_dependencies(${library_name} ${dependencies})
 
-target_include_directories(${library_name} PUBLIC
-  ${Qt5Widgets_INCLUDE_DIRS}
-  ${OGRE_INCLUDE_DIRS}
-)
+target_include_directories(${library_name} PUBLIC ${Qt5Widgets_INCLUDE_DIRS}
+                                                  ${OGRE_INCLUDE_DIRS})
 
-target_link_libraries(${library_name}
-  rviz_common::rviz_common
-)
+target_link_libraries(${library_name} rviz_common::rviz_common)
 
-# Causes the visibility macros to use dllexport rather than dllimport,
-# which is appropriate when building the dll but not consuming it.
-# TODO: Make this specific to this project (not rviz default plugins)
-target_compile_definitions(${library_name} PRIVATE "RVIZ_DEFAULT_PLUGINS_BUILDING_LIBRARY")
+# Causes the visibility macros to use dllexport rather than dllimport, which is
+# appropriate when building the dll but not consuming it. TODO: Make this
+# specific to this project (not rviz default plugins)
+target_compile_definitions(${library_name}
+                           PRIVATE "RVIZ_DEFAULT_PLUGINS_BUILDING_LIBRARY")
 
 pluginlib_export_plugin_description_file(rviz_common plugins_description.xml)
 
@@ -101,13 +92,10 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+  INCLUDES
+  DESTINATION include)
 
-install(
-  DIRECTORY include/
-  DESTINATION include/
-)
+install(DIRECTORY include/ DESTINATION include/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -116,13 +104,7 @@ endif()
 
 ament_export_include_directories(include)
 ament_export_targets(${library_name} HAS_LIBRARY_TARGET)
-ament_export_dependencies(
-  Qt5
-  rviz_common
-  geometry_msgs
-  map_msgs
-  nav_msgs
-  rclcpp
-)
+ament_export_dependencies(Qt5 rviz_common geometry_msgs map_msgs nav_msgs
+                          rclcpp)
 
 ament_package()

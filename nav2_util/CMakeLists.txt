@@ -32,8 +32,7 @@ set(dependencies
     bondcpp
     bond
     action_msgs
-    rcl_interfaces
-)
+    rcl_interfaces)
 
 nav2_package()
 
@@ -42,9 +41,7 @@ include_directories(include)
 set(library_name ${PROJECT_NAME}_core)
 add_subdirectory(src)
 
-install(DIRECTORY include/
-  DESTINATION include/
-)
+install(DIRECTORY include/ DESTINATION include/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

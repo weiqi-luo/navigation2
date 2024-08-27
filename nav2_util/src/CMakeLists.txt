@@ -1,4 +1,5 @@
-add_library(${library_name} SHARED
+add_library(
+  ${library_name} SHARED
   costmap.cpp
   node_utils.cpp
   lifecycle_service_client.cpp
@@ -7,10 +8,10 @@ add_library(${library_name} SHARED
   lifecycle_node.cpp
   robot_utils.cpp
   node_thread.cpp
-  odometry_utils.cpp
-)
+  odometry_utils.cpp)
 
-ament_target_dependencies(${library_name}
+ament_target_dependencies(
+  ${library_name}
   rclcpp
   nav2_msgs
   tf2
@@ -20,24 +21,17 @@ ament_target_dependencies(${library_name}
   lifecycle_msgs
   rclcpp_lifecycle
   tf2_geometry_msgs
-  bondcpp
-)
+  bondcpp)
 
-add_executable(lifecycle_bringup
-  lifecycle_bringup_commandline.cpp
-)
+add_executable(lifecycle_bringup lifecycle_bringup_commandline.cpp)
 target_link_libraries(lifecycle_bringup ${library_name})
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 
-install(TARGETS
-  ${library_name}
+install(
+  TARGETS ${library_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+  RUNTIME DESTINATION bin)
 
-install(TARGETS
-  lifecycle_bringup
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-)
+install(TARGETS lifecycle_bringup RUNTIME DESTINATION lib/${PROJECT_NAME})

@@ -3,9 +3,7 @@
 <package format="3">
   <name>navigation2</name>
   <version>1.2.9</version>
-  <description>
-    ROS2 Navigation Stack
-  </description>
+  <description> ROS2 Navigation Stack </description>
   <maintainer email="stevenmacenski@gmail.com">Steve Macenski</maintainer>
   <maintainer email="carl.r.delsey@intel.com">Carl Delsey</maintainer>
   <license>Apache-2.0</license>

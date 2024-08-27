@@ -19,62 +19,46 @@ find_package(diagnostic_updater REQUIRED)
 
 nav2_package()
 
-include_directories(
-  include
-)
+include_directories(include)
 
 set(library_name ${PROJECT_NAME}_core)
 
-add_library(${library_name} SHARED
-  src/lifecycle_manager.cpp
-  src/lifecycle_manager_client.cpp
-)
+add_library(${library_name} SHARED src/lifecycle_manager.cpp
+                                   src/lifecycle_manager_client.cpp)
 
 set(dependencies
-  geometry_msgs
-  lifecycle_msgs
-  nav2_msgs
-  nav2_util
-  rclcpp
-  rclcpp_action
-  rclcpp_lifecycle
-  rclcpp_components
-  std_msgs
-  std_srvs
-  tf2_geometry_msgs
-  bondcpp
-  diagnostic_updater
-)
+    geometry_msgs
+    lifecycle_msgs
+    nav2_msgs
+    nav2_util
+    rclcpp
+    rclcpp_action
+    rclcpp_lifecycle
+    rclcpp_components
+    std_msgs
+    std_srvs
+    tf2_geometry_msgs
+    bondcpp
+    diagnostic_updater)
 
-ament_target_dependencies(${library_name}
-  ${dependencies}
-)
+ament_target_dependencies(${library_name} ${dependencies})
 
-add_executable(lifecycle_manager
-  src/main.cpp
-)
+add_executable(lifecycle_manager src/main.cpp)
 
-target_link_libraries(lifecycle_manager
-  ${library_name}
-)
+target_link_libraries(lifecycle_manager ${library_name})
 
-ament_target_dependencies(lifecycle_manager
-  ${dependencies}
-)
+ament_target_dependencies(lifecycle_manager ${dependencies})
 
-rclcpp_components_register_nodes(${library_name} "nav2_lifecycle_manager::LifecycleManager")
+rclcpp_components_register_nodes(${library_name}
+                                 "nav2_lifecycle_manager::LifecycleManager")
 
-install(TARGETS
-  ${library_name}
+install(
+  TARGETS ${library_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+  RUNTIME DESTINATION bin)
 
-install(TARGETS
-  lifecycle_manager
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-)
+install(TARGETS lifecycle_manager RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/)
 
