@@ -16,27 +16,30 @@
 #ifndef NAV2_MAP_SERVER__MAP_SAVER_HPP_
 #define NAV2_MAP_SERVER__MAP_SAVER_HPP_
 
-#include <memory>
 #include <string>
+#include <memory>
+
+#include "rclcpp/rclcpp.hpp"
+#include "nav2_util/lifecycle_node.hpp"
+#include "nav2_msgs/srv/save_map.hpp"
 
 #include "map_io.hpp"
-#include "nav2_msgs/srv/save_map.hpp"
-#include "nav2_util/lifecycle_node.hpp"
-#include "rclcpp/rclcpp.hpp"
 
-namespace nav2_map_server {
+namespace nav2_map_server
+{
 
 /**
  * @class nav2_map_server::MapSaver
  * @brief A class that provides map saving methods and services
  */
-class MapSaver : public nav2_util::LifecycleNode {
- public:
+class MapSaver : public nav2_util::LifecycleNode
+{
+public:
   /**
    * @brief Constructor for the nav2_map_server::MapSaver
    * @param options Additional options to control creation of the node.
    */
-  explicit MapSaver(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+  explicit MapSaver(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
    * @brief Destructor for the nav2_map_server::MapServer
@@ -49,49 +52,52 @@ class MapSaver : public nav2_util::LifecycleNode {
    * @param save_parameters Map saving parameters.
    * @return true of false
    */
-  bool saveMapTopicToFile(const std::string& map_topic, const SaveParameters& save_parameters);
+  bool saveMapTopicToFile(
+    const std::string & map_topic,
+    const SaveParameters & save_parameters);
 
   /**
    * @brief Sets up map saving service
    * @param state Lifecycle Node's state
    * @return Success or Failure
    */
-  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State& state) override;
+  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State & state) override;
   /**
    * @brief Called when node switched to active state
    * @param state Lifecycle Node's state
    * @return Success or Failure
    */
-  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State& state) override;
+  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State & state) override;
   /**
    * @brief Called when node switched to inactive state
    * @param state Lifecycle Node's state
    * @return Success or Failure
    */
-  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State& state) override;
+  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
   /**
    * @brief Called when it is required node clean-up
    * @param state Lifecycle Node's state
    * @return Success or Failure
    */
-  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State& state) override;
+  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State & state) override;
   /**
    * @brief Called when in Shutdown state
    * @param state Lifecycle Node's state
    * @return Success or Failure
    */
-  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State& state) override;
+  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;
 
- protected:
+protected:
   /**
    * @brief Map saving service callback
    * @param request_header Service request header
    * @param request Service request
    * @param response Service response
    */
-  void saveMapCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<nav2_msgs::srv::SaveMap::Request> request,
-      std::shared_ptr<nav2_msgs::srv::SaveMap::Response> response);
+  void saveMapCallback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<nav2_msgs::srv::SaveMap::Request> request,
+    std::shared_ptr<nav2_msgs::srv::SaveMap::Response> response);
 
   // The timeout for saving the map in service
   std::shared_ptr<rclcpp::Duration> save_map_timeout_;

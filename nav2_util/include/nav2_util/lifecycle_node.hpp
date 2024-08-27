@@ -19,13 +19,14 @@
 #include <string>
 #include <thread>
 
-#include "bond/msg/constants.hpp"
-#include "bondcpp/bond.hpp"
 #include "nav2_util/node_thread.hpp"
-#include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "bondcpp/bond.hpp"
+#include "bond/msg/constants.hpp"
 
-namespace nav2_util {
+namespace nav2_util
+{
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -33,25 +34,30 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
  * @class nav2_util::LifecycleNode
  * @brief A lifecycle node wrapper to enable common Nav2 needs such as manipulating parameters
  */
-class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
- public:
+class LifecycleNode : public rclcpp_lifecycle::LifecycleNode
+{
+public:
   /**
    * @brief A lifecycle node constructor
    * @param node_name Name for the node
    * @param namespace Namespace for the node, if any
    * @param options Node options
    */
-  LifecycleNode(const std::string& node_name, const std::string& ns = "",
-      const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+  LifecycleNode(
+    const std::string & node_name,
+    const std::string & ns = "",
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LifecycleNode();
 
-  typedef struct {
+  typedef struct
+  {
     double from_value;
     double to_value;
     double step;
   } floating_point_range;
 
-  typedef struct {
+  typedef struct
+  {
     int from_value;
     int to_value;
     int step;
@@ -65,9 +71,11 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
    * @param additional_constraints Any additional constraints on the parameters to list
    * @param read_only Whether this param should be considered read only
    */
-  void add_parameter(const std::string& name, const rclcpp::ParameterValue& default_value,
-      const std::string& description = "", const std::string& additional_constraints = "",
-      bool read_only = false) {
+  void add_parameter(
+    const std::string & name, const rclcpp::ParameterValue & default_value,
+    const std::string & description = "", const std::string & additional_constraints = "",
+    bool read_only = false)
+  {
     auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
 
     descriptor.name = name;
@@ -87,9 +95,12 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
    * @param additional_constraints Any additional constraints on the parameters to list
    * @param read_only Whether this param should be considered read only
    */
-  void add_parameter(const std::string& name, const rclcpp::ParameterValue& default_value,
-      const floating_point_range fp_range, const std::string& description = "",
-      const std::string& additional_constraints = "", bool read_only = false) {
+  void add_parameter(
+    const std::string & name, const rclcpp::ParameterValue & default_value,
+    const floating_point_range fp_range,
+    const std::string & description = "", const std::string & additional_constraints = "",
+    bool read_only = false)
+  {
     auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
 
     descriptor.name = name;
@@ -113,9 +124,12 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
    * @param additional_constraints Any additional constraints on the parameters to list
    * @param read_only Whether this param should be considered read only
    */
-  void add_parameter(const std::string& name, const rclcpp::ParameterValue& default_value,
-      const integer_range int_range, const std::string& description = "",
-      const std::string& additional_constraints = "", bool read_only = false) {
+  void add_parameter(
+    const std::string & name, const rclcpp::ParameterValue & default_value,
+    const integer_range int_range,
+    const std::string & description = "", const std::string & additional_constraints = "",
+    bool read_only = false)
+  {
     auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
 
     descriptor.name = name;
@@ -133,9 +147,10 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
   /**
    * @brief Get a shared pointer of this
    */
-  std::shared_ptr<nav2_util::LifecycleNode> shared_from_this() {
+  std::shared_ptr<nav2_util::LifecycleNode> shared_from_this()
+  {
     return std::static_pointer_cast<nav2_util::LifecycleNode>(
-        rclcpp_lifecycle::LifecycleNode::shared_from_this());
+      rclcpp_lifecycle::LifecycleNode::shared_from_this());
   }
 
   /**
@@ -144,9 +159,11 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
    * @param state State prior to error transition
    * @return Return type for success or failed transition to error state
    */
-  nav2_util::CallbackReturn on_error(const rclcpp_lifecycle::State& /*state*/) {
+  nav2_util::CallbackReturn on_error(const rclcpp_lifecycle::State & /*state*/)
+  {
     RCLCPP_FATAL(
-        get_logger(), "Lifecycle node %s does not have error state implemented", get_name());
+      get_logger(),
+      "Lifecycle node %s does not have error state implemented", get_name());
     return nav2_util::CallbackReturn::SUCCESS;
   }
 
@@ -167,7 +184,7 @@ class LifecycleNode : public rclcpp_lifecycle::LifecycleNode {
    */
   void destroyBond();
 
- protected:
+protected:
   /**
    * @brief Print notifications for lifecycle node
    */

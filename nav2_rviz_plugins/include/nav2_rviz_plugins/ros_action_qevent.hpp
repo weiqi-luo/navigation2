@@ -17,35 +17,46 @@
 
 #include <QAbstractTransition>
 
-namespace nav2_rviz_plugins {
+namespace nav2_rviz_plugins
+{
 
-enum class QActionState { ACTIVE, INACTIVE };
+enum class QActionState
+{
+  ACTIVE,
+  INACTIVE
+};
 
 /// Custom Event to track state of ROS Action
-struct ROSActionQEvent : public QEvent {
+struct ROSActionQEvent : public QEvent
+{
   explicit ROSActionQEvent(QActionState state)
-      : QEvent(QEvent::Type(QEvent::User + 1)), state_(state) {}
+  : QEvent(QEvent::Type(QEvent::User + 1)),
+    state_(state) {}
 
   QActionState state_;
 };
 
 /// Custom Transition to check whether ROS Action state has changed
-class ROSActionQTransition : public QAbstractTransition {
- public:
-  explicit ROSActionQTransition(QActionState initial_status) : status_(initial_status) {}
+class ROSActionQTransition : public QAbstractTransition
+{
+public:
+  explicit ROSActionQTransition(QActionState initial_status)
+  : status_(initial_status)
+  {}
 
   ~ROSActionQTransition() {}
 
- protected:
-  virtual bool eventTest(QEvent* e) {
+protected:
+  virtual bool eventTest(QEvent * e)
+  {
     if (e->type() != QEvent::Type(QEvent::User + 1)) {  // ROSActionEvent
       return false;
     }
-    ROSActionQEvent* action_event = static_cast<ROSActionQEvent*>(e);
+    ROSActionQEvent * action_event = static_cast<ROSActionQEvent *>(e);
     return status_ != action_event->state_;
   }
 
-  virtual void onTransition(QEvent*) {}
+  virtual void onTransition(QEvent *) {}
   QActionState status_;
 };
 

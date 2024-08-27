@@ -17,20 +17,22 @@
 #ifndef NAV2_AMCL__MOTION_MODEL__MOTION_MODEL_HPP_
 #define NAV2_AMCL__MOTION_MODEL__MOTION_MODEL_HPP_
 
-#include <memory>
 #include <string>
+#include <memory>
 
 #include "nav2_amcl/pf/pf.hpp"
 #include "nav2_amcl/pf/pf_pdf.hpp"
 
-namespace nav2_amcl {
+namespace nav2_amcl
+{
 
 /**
  * @class nav2_amcl::MotionModel
  * @brief An abstract motion model class
  */
-class MotionModel {
- public:
+class MotionModel
+{
+public:
   virtual ~MotionModel() = default;
 
   /**
@@ -44,7 +46,8 @@ class MotionModel {
    * @return MotionModel A pointer to the motion model it created
    */
   virtual void initialize(
-      double alpha1, double alpha2, double alpha3, double alpha4, double alpha5) = 0;
+    double alpha1, double alpha2, double alpha3, double alpha4,
+    double alpha5) = 0;
 
   /**
    * @brief Update on new odometry data
@@ -52,7 +55,7 @@ class MotionModel {
    * @param pose pose of robot in odometry update
    * @param delta change in pose in odometry update
    */
-  virtual void odometryUpdate(pf_t* pf, const pf_vector_t& pose, const pf_vector_t& delta) = 0;
+  virtual void odometryUpdate(pf_t * pf, const pf_vector_t & pose, const pf_vector_t & delta) = 0;
 };
 }  // namespace nav2_amcl
 

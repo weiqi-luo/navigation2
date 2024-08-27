@@ -21,33 +21,36 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
-#include "nav2_msgs/srv/manage_lifecycle_nodes.hpp"
-#include "nav2_util/service_client.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "std_srvs/srv/empty.hpp"
+#include "nav2_msgs/srv/manage_lifecycle_nodes.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include "nav2_util/service_client.hpp"
 
-namespace nav2_lifecycle_manager {
+namespace nav2_lifecycle_manager
+{
 /**
  * @enum nav2_lifecycle_manager::SystemStatus
  * @brief Enum class representing the status of the system.
  */
-enum class SystemStatus { ACTIVE, INACTIVE, TIMEOUT };
+enum class SystemStatus {ACTIVE, INACTIVE, TIMEOUT};
 /**
  * @class nav2_lifecycle_manager::LifeCycleMangerClient
  * @brief The LifecycleManagerClient sends requests to the LifecycleManager to
  * control the lifecycle state of the navigation modules.
  */
-class LifecycleManagerClient {
- public:
+class LifecycleManagerClient
+{
+public:
   /**
    * @brief A constructor for LifeCycleMangerClient
    * @param name Managed node name
    * @param parent_node Node that execute the service calls
    */
   explicit LifecycleManagerClient(
-      const std::string& name, std::shared_ptr<rclcpp::Node> parent_node);
+    const std::string & name,
+    std::shared_ptr<rclcpp::Node> parent_node);
 
   // Client-side interface to the Nav2 lifecycle manager
   /**
@@ -91,7 +94,7 @@ class LifecycleManagerClient {
    */
   SystemStatus is_active(const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
 
- protected:
+protected:
   using ManageLifecycleNodes = nav2_msgs::srv::ManageLifecycleNodes;
 
   /**
@@ -99,7 +102,8 @@ class LifecycleManagerClient {
    * @param command
    */
   bool callService(
-      uint8_t command, const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
+    uint8_t command,
+    const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
 
   // The node to use for the service call
   rclcpp::Node::SharedPtr node_;

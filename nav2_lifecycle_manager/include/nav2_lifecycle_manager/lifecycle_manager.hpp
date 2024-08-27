@@ -23,22 +23,25 @@
 #include <unordered_map>
 #include <vector>
 
-#include "bondcpp/bond.hpp"
-#include "diagnostic_updater/diagnostic_updater.hpp"
-#include "nav2_msgs/srv/manage_lifecycle_nodes.hpp"
 #include "nav2_util/lifecycle_service_client.hpp"
 #include "nav2_util/node_thread.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/empty.hpp"
+#include "nav2_msgs/srv/manage_lifecycle_nodes.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include "bondcpp/bond.hpp"
+#include "diagnostic_updater/diagnostic_updater.hpp"
 
-namespace nav2_lifecycle_manager {
+
+namespace nav2_lifecycle_manager
+{
 using namespace std::chrono_literals;  // NOLINT
 
 using nav2_msgs::srv::ManageLifecycleNodes;
 
 /// @brief Enum to for keeping track of the state of managed nodes
-enum NodeState {
+enum NodeState
+{
   UNCONFIGURED,
   ACTIVE,
   INACTIVE,
@@ -52,19 +55,20 @@ enum NodeState {
  * Nav2 stack. It receives transition request and then uses lifecycle
  * interface to change lifecycle node's state.
  */
-class LifecycleManager : public rclcpp::Node {
- public:
+class LifecycleManager : public rclcpp::Node
+{
+public:
   /**
    * @brief A constructor for nav2_lifecycle_manager::LifecycleManager
    * @param options Additional options to control creation of the node.
    */
-  explicit LifecycleManager(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+  explicit LifecycleManager(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   /**
    * @brief A destructor for nav2_lifecycle_manager::LifecycleManager
    */
   ~LifecycleManager();
 
- protected:
+protected:
   // Callback group used by services and timers
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   std::unique_ptr<nav2_util::NodeThread> service_thread_;
@@ -78,9 +82,10 @@ class LifecycleManager : public rclcpp::Node {
    * @param request Service request
    * @param reponse Service response
    */
-  void managerCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<ManageLifecycleNodes::Request> request,
-      std::shared_ptr<ManageLifecycleNodes::Response> response);
+  void managerCallback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<ManageLifecycleNodes::Request> request,
+    std::shared_ptr<ManageLifecycleNodes::Response> response);
   /**
    * @brief Trigger callback function checks if the managed nodes are in active
    * state.
@@ -88,9 +93,10 @@ class LifecycleManager : public rclcpp::Node {
    * @param request Service request
    * @param reponse Service response
    */
-  void isActiveCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-      std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+  void isActiveCallback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
   // Support functions for the service calls
   /**
@@ -162,7 +168,7 @@ class LifecycleManager : public rclcpp::Node {
   /**
    * @brief Support function for creating bond connections
    */
-  bool createBondConnection(const std::string& node_name);
+  bool createBondConnection(const std::string & node_name);
 
   // Support function for killing bond connections
   /**
@@ -187,7 +193,9 @@ class LifecycleManager : public rclcpp::Node {
   /**
    * @brief For a node, transition to the new target state
    */
-  bool changeStateForNode(const std::string& node_name, std::uint8_t transition);
+  bool changeStateForNode(
+    const std::string & node_name,
+    std::uint8_t transition);
 
   /**
    * @brief For each node in the map, transition to the new target state
@@ -198,13 +206,13 @@ class LifecycleManager : public rclcpp::Node {
   /**
    * @brief Helper function to highlight the output on the console
    */
-  void message(const std::string& msg);
+  void message(const std::string & msg);
 
   // Diagnostics functions
   /**
    * @brief function to check the state of Nav2 nodes
    */
-  void CreateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  void CreateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   /**
    * Register our preshutdown callback for this Node's rcl Context.
