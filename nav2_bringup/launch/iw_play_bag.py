@@ -29,7 +29,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("nav2_bringup")
-    # map_yaml_file = LaunchConfiguration("map")
+    map_yaml_file = LaunchConfiguration("map")
     bag_file = LaunchConfiguration("bag")
     qos_file = LaunchConfiguration("qos", default="/iw_data/config/qos/amcl.yaml")
 
@@ -51,10 +51,10 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            # DeclareLaunchArgument(
-            #     "map",
-            #     description="Full path to map file to load",
-            # ),
+            DeclareLaunchArgument(
+                "map",
+                description="Full path to map file to load",
+            ),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=param_dir,
@@ -64,16 +64,6 @@ def generate_launch_description():
                 "use_sim_time",
                 default_value="false",
                 description="Use simulation (Gazebo) clock if true",
-            ),
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    [nav2_launch_file_dir, "/iw_localization_launch.py"]
-                ),
-                launch_arguments={
-                    # "map": map_yaml_file,
-                    "use_sim_time": use_sim_time,
-                    "params_file": param_dir,
-                }.items(),
             ),
             Node(
                 package="rviz2",
