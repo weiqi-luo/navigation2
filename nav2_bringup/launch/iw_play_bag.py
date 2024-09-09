@@ -41,7 +41,7 @@ def generate_launch_description():
         default=os.path.join(
             bringup_dir,
             "params",
-            "nav2_params_iw.yaml",
+            "iw_nav2_params.yaml",
         ),
     )
 
