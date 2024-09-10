@@ -29,7 +29,6 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("nav2_bringup")
-    map_yaml_file = LaunchConfiguration("map")
     bag_file = LaunchConfiguration("bag")
     qos_file = LaunchConfiguration("qos", default="/iw_data/config/qos/amcl.yaml")
 
@@ -45,16 +44,10 @@ def generate_launch_description():
         ),
     )
 
-    nav2_launch_file_dir = os.path.join(bringup_dir, "launch")
-
     rviz_config_dir = os.path.join("/iw_data/config/rviz/iw_amcl.rviz")
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument(
-                "map",
-                description="Full path to map file to load",
-            ),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=param_dir,
