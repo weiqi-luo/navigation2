@@ -464,6 +464,13 @@ void AmclNode::initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped
     RCLCPP_ERROR(get_logger(), "Received initialpose message is malformed. Rejecting.");
     return;
   }
+  if (nav2_util::strip_leading_slash(msg->header.frame_id) == "map") {
+    RCLCPP_WARN(get_logger(),
+        "Got initial pose in frame \"%s\"; set it to the global frame, "
+        "\"%s\"",
+        nav2_util::strip_leading_slash(msg->header.frame_id).c_str(), global_frame_id_.c_str());
+    msg->header.frame_id = global_frame_id_;
+  }
   if (nav2_util::strip_leading_slash(msg->header.frame_id) != global_frame_id_) {
     RCLCPP_WARN(get_logger(),
         "Ignoring initial pose in frame \"%s\"; initial poses must be in the global frame, "
@@ -543,6 +550,7 @@ void AmclNode::handleInitialPose(geometry_msgs::msg::PoseWithCovarianceStamped& 
 }
 
 void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan) {
+  RCLCPP_WARN(get_logger(), "!!!!!!!!!!!!!!! laserReceived");
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
 
   // Since the sensor data is continually being published by the simulator or robot,
@@ -915,10 +923,14 @@ void AmclNode::sendMapToOdomTransform(const tf2::TimePoint& transform_expiration
     return;
   }
   geometry_msgs::msg::TransformStamped tmp_tf_stamped;
-  tmp_tf_stamped.header.frame_id = global_frame_id_;
+  // tmp_tf_stamped.header.frame_id = global_frame_id_;
+  // tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
+  // tmp_tf_stamped.child_frame_id = odom_frame_id_;
+  // tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
   tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
-  tmp_tf_stamped.child_frame_id = odom_frame_id_;
-  tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
+  tmp_tf_stamped.header.frame_id = odom_frame_id_;
+  tmp_tf_stamped.child_frame_id = global_frame_id_;
+  tf2::impl::Converter<false, true>::convert(latest_tf_, tmp_tf_stamped.transform);
   tf_broadcaster_->sendTransform(tmp_tf_stamped);
 }
 
@@ -989,6 +1001,7 @@ void AmclNode::initParameters() {
   get_parameter("always_reset_initial_pose", always_reset_initial_pose_);
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
+  get_parameter("amcl_map_topic", amcl_map_topic_);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
   transform_tolerance_ = tf2::durationFromSec(tmp_tol);
@@ -1272,7 +1285,7 @@ rcl_interfaces::msg::SetParametersResult AmclNode::dynamicParametersCallback(
 }
 
 void AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-  RCLCPP_DEBUG(get_logger(), "AmclNode: A new map was received.");
+  RCLCPP_INFO(get_logger(), "AmclNode: A new map was received.");
   if (!nav2_util::validateMsg(*msg)) {
     RCLCPP_ERROR(get_logger(), "Received map message is malformed. Rejecting.");
     return;
@@ -1284,11 +1297,16 @@ void AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
   first_map_received_ = true;
 }
 
-void AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid& msg) {
+void AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid& msg_origin) {
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
-
+  nav_msgs::msg::OccupancyGrid msg = msg_origin;
   RCLCPP_INFO(get_logger(), "Received a %d X %d map @ %.3f m/pix", msg.info.width, msg.info.height,
       msg.info.resolution);
+  if (msg.header.frame_id != global_frame_id_) {
+    msg.header.frame_id = global_frame_id_;
+    RCLCPP_WARN(get_logger(), "Reset frame_id of map received:'%s' to match global_frame_id:'%s'. ",
+        msg_origin.header.frame_id.c_str(), msg.header.frame_id.c_str());
+  }
   if (msg.header.frame_id != global_frame_id_) {
     RCLCPP_WARN(get_logger(),
         "Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could"
@@ -1373,6 +1391,7 @@ void AmclNode::initTransforms() {
 }
 
 void AmclNode::initMessageFilters() {
+  RCLCPP_INFO_STREAM(get_logger(), "initMessageFilters: " << scan_topic_ << ", " << odom_frame_id_);
   auto sub_opt = rclcpp::SubscriptionOptions();
   sub_opt.callback_group = callback_group_;
   laser_scan_sub_ = std::make_unique<

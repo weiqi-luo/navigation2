@@ -385,6 +385,7 @@ class AmclNode : public nav2_util::LifecycleNode {
   double z_rand_;
   std::string scan_topic_{"scan"};
   std::string map_topic_{"map"};
+  std::string amcl_map_topic_{"map_amcl"};
 };
 
 }  // namespace nav2_amcl
