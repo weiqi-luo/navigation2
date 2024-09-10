@@ -34,9 +34,14 @@ add_subdirectory(src/sensors)
 
 set(executable_name amcl)
 
+<<<<<<< HEAD
 add_executable(${executable_name}
   src/main.cpp
 )
+=======
+add_executable(${executable_name} src/main.cpp)
+add_executable(copy_map src/copy_map.cpp)
+>>>>>>> aa1a2fdc (add copy map)
 
 set(library_name ${executable_name}_core)
 
@@ -67,13 +72,11 @@ set(dependencies
   pluginlib
 )
 
-ament_target_dependencies(${executable_name}
-  ${dependencies}
-)
+ament_target_dependencies(${executable_name} ${dependencies})
+ament_target_dependencies(copy_map ${dependencies})
 
-target_link_libraries(${executable_name}
-  ${library_name}
-)
+target_link_libraries(${executable_name} ${library_name})
+target_link_libraries(copy_map ${library_name})
 
 ament_target_dependencies(${library_name}
   ${dependencies}
@@ -91,9 +94,14 @@ install(TARGETS ${library_name}
   RUNTIME DESTINATION bin
 )
 
+<<<<<<< HEAD
 install(TARGETS ${executable_name}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+=======
+install(TARGETS ${executable_name} RUNTIME DESTINATION lib/${PROJECT_NAME})
+install(TARGETS copy_map RUNTIME DESTINATION lib/${PROJECT_NAME})
+>>>>>>> aa1a2fdc (add copy map)
 
 install(DIRECTORY include/
   DESTINATION include/
