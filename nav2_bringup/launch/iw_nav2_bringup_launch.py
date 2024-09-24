@@ -47,7 +47,8 @@ def generate_launch_description():
 
     nav2_launch_file_dir = os.path.join(bringup_dir, "launch")
 
-    rviz_config_dir = os.path.join("/iw_data/config/rviz/iw_amcl.rviz")
+    rviz_config_baseline = os.path.join("/iw_data/config/rviz/iw_baseline.rviz")
+    rviz_config_amcl = os.path.join("/iw_data/config/rviz/iw_amcl.rviz")
 
     return LaunchDescription(
         [
@@ -76,10 +77,25 @@ def generate_launch_description():
                 }.items(),
             ),
             Node(
+                package="nav2_amcl",
+                executable="copy_map",
+                name="copy_map",
+                output="screen",
+            ),
+            Node(
                 package="rviz2",
                 executable="rviz2",
-                name="rviz2",
-                arguments=["-d", rviz_config_dir],
+                name="rviz2_baseline",
+                arguments=["-d", rviz_config_baseline],
+                parameters=[{"use_sim_time": use_sim_time}],
+                condition=IfCondition(use_rviz),
+                output="screen",
+            ),
+            Node(
+                package="rviz2",
+                executable="rviz2",
+                name="rviz2_amcl",
+                arguments=["-d", rviz_config_amcl],
                 parameters=[{"use_sim_time": use_sim_time}],
                 condition=IfCondition(use_rviz),
                 output="screen",
@@ -94,9 +110,6 @@ def generate_launch_description():
                     "--clock",
                     "--qos-profile-overrides-path",
                     qos_file,
-                    # "--remap",
-                    # "/tf:=/bag/tf",
-                    # "/tf_static:=/bag/tf_static",
                 ],
                 output="screen",
             ),
