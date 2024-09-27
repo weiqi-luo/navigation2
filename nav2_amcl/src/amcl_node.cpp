@@ -398,7 +398,7 @@ pf_vector_t AmclNode::uniformPoseGenerator(void* arg) {
 
   pf_vector_t p;
 
-  RCLCPP_DEBUG(get_logger(), "Generating new uniform sample");
+  RCLCPP_INFO(get_logger(), "Generating new uniform sample");
   for (;;) {
     p.v[0] = min_x + drand48() * (max_x - min_x);
     p.v[1] = min_y + drand48() * (max_y - min_y);
@@ -550,12 +550,13 @@ void AmclNode::handleInitialPose(geometry_msgs::msg::PoseWithCovarianceStamped& 
 }
 
 void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan) {
-  RCLCPP_WARN(get_logger(), "!!!!!!!!!!!!!!! laserReceived");
+  RCLCPP_WARN(get_logger(), "===============laserReceived");
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
 
   // Since the sensor data is continually being published by the simulator or robot,
   // we don't want our callbacks to fire until we're in the active state
   if (!active_) {
+    RCLCPP_WARN(get_logger(), "Waiting for active....");
     return;
   }
   if (!first_map_received_) {
@@ -574,6 +575,7 @@ void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_s
   // Do we have the base->base_laser Tx yet?
   if (frame_to_laser_.find(laser_scan_frame_id) == frame_to_laser_.end()) {
     if (!addNewScanner(laser_index, laser_scan, laser_scan_frame_id, laser_pose)) {
+      RCLCPP_WARN(get_logger(), "could not find transform");
       return;  // could not find transform
     }
   } else {
@@ -628,12 +630,15 @@ void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_s
     }
 
     pf_sample_set_t* set = pf_->sets + pf_->current_set;
-    RCLCPP_DEBUG(get_logger(), "Num samples: %d\n", set->sample_count);
+    RCLCPP_INFO(get_logger(), "Num samples: %d\n", set->sample_count);
 
     if (!force_update_) {
       publishParticleCloud(set);
     }
   }
+  RCLCPP_INFO_STREAM(get_logger(), "#resampled=" << resampled
+                                                 << ", #force_publication=" << force_publication
+                                                 << ", #first_pose_sent_=" << first_pose_sent_);
   if (resampled || force_publication || !first_pose_sent_) {
     amcl_hyp_t max_weight_hyps;
     std::vector<amcl_hyp_t> hyps;
@@ -738,7 +743,7 @@ bool AmclNode::updateFilter(const int& laser_index,
   // wrapping angle to [-pi .. pi]
   angle_increment = fmod(angle_increment + 5 * M_PI, 2 * M_PI) - M_PI;
 
-  RCLCPP_DEBUG(get_logger(), "Laser %d angles in base frame: min: %.3f inc: %.3f", laser_index,
+  RCLCPP_INFO(get_logger(), "Laser %d angles in base frame: min: %.3f inc: %.3f", laser_index,
       angle_min, angle_increment);
 
   // Check the validity of range_max, must > 0.0
@@ -802,6 +807,7 @@ void AmclNode::publishParticleCloud(const pf_sample_set_t* set) {
   }
 
   particle_cloud_pub_->publish(std::move(cloud_with_weights_msg));
+  RCLCPP_INFO(get_logger(), "!!! publishParticleCloud");
 }
 
 bool AmclNode::getMaxWeightHyp(
@@ -829,7 +835,7 @@ bool AmclNode::getMaxWeightHyp(
   }
 
   if (max_weight > 0.0) {
-    RCLCPP_DEBUG(get_logger(), "Max weight pose: %.3f %.3f %.3f",
+    RCLCPP_INFO(get_logger(), "Max weight pose: %.3f %.3f %.3f",
         hyps[max_weight_hyp].pf_pose_mean.v[0], hyps[max_weight_hyp].pf_pose_mean.v[1],
         hyps[max_weight_hyp].pf_pose_mean.v[2]);
 
@@ -877,7 +883,7 @@ void AmclNode::publishAmclPose(const sensor_msgs::msg::LaserScan::ConstSharedPtr
   }
   temp += p->pose.pose.position.x + p->pose.pose.position.y;
   if (!std::isnan(temp)) {
-    RCLCPP_DEBUG(get_logger(), "Publishing pose");
+    RCLCPP_INFO(get_logger(), "Publishing pose");
     last_published_pose_ = *p;
     first_pose_sent_ = true;
     pose_pub_->publish(std::move(p));
@@ -887,8 +893,9 @@ void AmclNode::publishAmclPose(const sensor_msgs::msg::LaserScan::ConstSharedPtr
         "configuration or faulty sensor measurements! Pose is not available!");
   }
 
-  RCLCPP_DEBUG(get_logger(), "New pose: %6.3f %6.3f %6.3f", hyps[max_weight_hyp].pf_pose_mean.v[0],
-      hyps[max_weight_hyp].pf_pose_mean.v[1], hyps[max_weight_hyp].pf_pose_mean.v[2]);
+  RCLCPP_INFO(get_logger(), "!!! publishAmclPose New pose: %6.3f %6.3f %6.3f",
+      hyps[max_weight_hyp].pf_pose_mean.v[0], hyps[max_weight_hyp].pf_pose_mean.v[1],
+      hyps[max_weight_hyp].pf_pose_mean.v[2]);
 }
 
 void AmclNode::calculateMaptoOdomTransform(
@@ -909,7 +916,7 @@ void AmclNode::calculateMaptoOdomTransform(
 
     tf_buffer_->transform(tmp_tf_stamped, odom_to_map, odom_frame_id_);
   } catch (tf2::TransformException& e) {
-    RCLCPP_DEBUG(get_logger(), "Failed to subtract base to odom transform: (%s)", e.what());
+    RCLCPP_INFO(get_logger(), "Failed to subtract base to odom transform: (%s)", e.what());
     return;
   }
 
