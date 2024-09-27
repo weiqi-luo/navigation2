@@ -36,19 +36,21 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz", default="true")
     use_sim_time = LaunchConfiguration("use_sim_time", default="false")
 
-    param_dir = LaunchConfiguration(
-        "params_file",
-        default=os.path.join(
-            bringup_dir,
-            "params",
-            "iw_nav2_params.yaml",
-        ),
-    )
+    # param_dir = LaunchConfiguration(
+    #     "params_file",
+    #     default=os.path.join(
+    #         bringup_dir,
+    #         "params",
+    #         "iw_nav2_params.yaml",
+    #     ),
+    # )
 
     nav2_launch_file_dir = os.path.join(bringup_dir, "launch")
-
     rviz_config_baseline = os.path.join("/iw_data/config/rviz/iw_baseline.rviz")
     rviz_config_amcl = os.path.join("/iw_data/config/rviz/iw_amcl.rviz")
+    param_dir = os.path.join(
+        "/home/user/ros2_ws/src/navigation2/nav2_bringup/params/iw_nav2_params.yaml"
+    )
 
     return LaunchDescription(
         [
@@ -56,11 +58,11 @@ def generate_launch_description():
             #     "map",
             #     description="Full path to map file to load",
             # ),
-            DeclareLaunchArgument(
-                "params_file",
-                default_value=param_dir,
-                description="Full path to param file to load",
-            ),
+            # DeclareLaunchArgument(
+            #     "params_file",
+            #     default_value=param_dir,
+            #     description="Full path to param file to load",
+            # ),
             DeclareLaunchArgument(
                 "use_sim_time",
                 default_value="false",
@@ -106,10 +108,11 @@ def generate_launch_description():
                     "bag",
                     "play",
                     bag_file,
-                    "-l",
                     "--clock",
                     "--qos-profile-overrides-path",
                     qos_file,
+                    "-r",
+                    "0.5",
                 ],
                 output="screen",
             ),
