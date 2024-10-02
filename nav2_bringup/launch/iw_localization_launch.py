@@ -27,6 +27,7 @@ from launch_ros.actions import LoadComposableNodes, SetParameter
 from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode, ParameterFile
 from nav2_common.launch import RewrittenYaml
+from rclpy.logging import get_logger  # Import ROS 2 logger
 
 
 def generate_launch_description():
@@ -34,7 +35,6 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory("nav2_bringup")
 
     namespace = LaunchConfiguration("namespace")
-    # map_yaml_file = LaunchConfiguration("map")
     use_sim_time = LaunchConfiguration("use_sim_time")
     autostart = LaunchConfiguration("autostart")
     params_file = LaunchConfiguration("params_file")
@@ -43,6 +43,7 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    log_path = LaunchConfiguration("log_path")
 
     lifecycle_nodes = ["amcl"]
 
@@ -64,6 +65,10 @@ def generate_launch_description():
         allow_substs=True,
     )
 
+    # Log the configured parameters using ROS 2 logger
+    logger = get_logger("launch_file")
+    logger.info(f"Configured parameters: {configured_params}")
+
     stdout_linebuf_envvar = SetEnvironmentVariable(
         "RCUTILS_LOGGING_BUFFERED_STREAM", "1"
     )
@@ -80,7 +85,7 @@ def generate_launch_description():
 
     declare_params_file_cmd = DeclareLaunchArgument(
         "params_file",
-        default_value=os.path.join(bringup_dir, "params", "nav2_params.yaml"),
+        # default_value=os.path.join(bringup_dir, "params", "nav2_params.yaml"),
         description="Full path to the ROS2 parameters file to use for all launched nodes",
     )
 
@@ -99,7 +104,7 @@ def generate_launch_description():
     declare_container_name_cmd = DeclareLaunchArgument(
         "container_name",
         default_value="nav2_container",
-        description="the name of conatiner that nodes will load in if use composition",
+        description="the name of container that nodes will load in if use composition",
     )
 
     declare_use_respawn_cmd = DeclareLaunchArgument(
@@ -123,7 +128,7 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params],
+                parameters=[configured_params, {"log_path": log_path}],
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=remappings,
             ),
@@ -153,7 +158,10 @@ def generate_launch_description():
                         package="nav2_amcl",
                         plugin="nav2_amcl::AmclNode",
                         name="amcl",
-                        parameters=[configured_params],
+                        parameters=[
+                            configured_params,
+                            {"log_path": log_path},
+                        ],
                         remappings=remappings,
                     ),
                     ComposableNode(
@@ -185,7 +193,7 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
 
-    # Add the actions to launch all of the localiztion nodes
+    # Add the actions to launch all of the localization nodes
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 

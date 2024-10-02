@@ -30,6 +30,7 @@
 
 #include "message_filters/subscriber.h"
 #include "nav2_amcl/angleutils.hpp"
+#include "nav2_amcl/log_utils.hpp"  // Include the log_utils header
 #include "nav2_amcl/pf/pf.hpp"
 #include "nav2_amcl/sensors/laser/laser.hpp"
 #include "nav2_util/geometry_utils.hpp"
@@ -194,6 +195,9 @@ AmclNode::AmclNode(const rclcpp::NodeOptions& options)
 
   add_parameter("first_map_only", rclcpp::ParameterValue(false),
       "Set this to true, when you want to load a new map published from the map_server");
+
+  add_parameter("log_path", rclcpp::ParameterValue(std::string("/tmp/amcl_logs")),
+      "Directory to store the AMCL pose logs");
 }
 
 AmclNode::~AmclNode() {}
@@ -883,10 +887,16 @@ void AmclNode::publishAmclPose(const sensor_msgs::msg::LaserScan::ConstSharedPtr
   }
   temp += p->pose.pose.position.x + p->pose.pose.position.y;
   if (!std::isnan(temp)) {
-    RCLCPP_INFO(get_logger(), "Publishing pose");
     last_published_pose_ = *p;
     first_pose_sent_ = true;
     pose_pub_->publish(std::move(p));
+
+    // Save the pose to a JSON file
+    if (!log_path_.empty()) {
+      savePoseToCsv(last_published_pose_, log_path_);
+      RCLCPP_INFO(get_logger(), "Pose saved to: %s", log_path_.c_str());
+    }
+
   } else {
     RCLCPP_WARN(get_logger(),
         "AMCL covariance or pose is NaN, likely due to an invalid "
@@ -1009,6 +1019,7 @@ void AmclNode::initParameters() {
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
   get_parameter("amcl_map_topic", amcl_map_topic_);
+  get_parameter("log_path", log_path_);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
   transform_tolerance_ = tf2::durationFromSec(tmp_tol);

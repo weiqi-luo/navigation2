@@ -18,6 +18,7 @@ find_package(nav2_util REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(iw_navigation_interfaces REQUIRED)
+find_package(nlohmann_json REQUIRED) # Added for JSON support
 
 nav2_package()
 
@@ -52,6 +53,7 @@ set(dependencies
     rclcpp_components
     message_filters
     tf2_geometry_msgs
+    nlohmann_json
     geometry_msgs
     nav_msgs
     sensor_msgs
