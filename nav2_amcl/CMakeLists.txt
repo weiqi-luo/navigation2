@@ -17,6 +17,11 @@ find_package(tf2 REQUIRED)
 find_package(nav2_util REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
+<<<<<<< HEAD
+=======
+find_package(iw_navigation_interfaces REQUIRED)
+find_package(nlohmann_json REQUIRED) # Added for JSON support
+>>>>>>> 6bfcf2f9 (add create and compare baseline)
 
 nav2_package()
 
@@ -56,21 +61,22 @@ if(HAVE_DRAND48)
 endif()
 
 set(dependencies
-  rclcpp
-  rclcpp_lifecycle
-  rclcpp_components
-  message_filters
-  tf2_geometry_msgs
-  geometry_msgs
-  nav_msgs
-  sensor_msgs
-  std_srvs
-  tf2_ros
-  tf2
-  nav2_util
-  nav2_msgs
-  pluginlib
-)
+    rclcpp
+    rclcpp_lifecycle
+    rclcpp_components
+    message_filters
+    tf2_geometry_msgs
+    nlohmann_json
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    std_srvs
+    tf2_ros
+    tf2
+    nav2_util
+    nav2_msgs
+    pluginlib
+    iw_navigation_interfaces)
 
 ament_target_dependencies(${executable_name} ${dependencies})
 ament_target_dependencies(copy_map ${dependencies})
