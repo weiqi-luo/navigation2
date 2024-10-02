@@ -386,6 +386,7 @@ class AmclNode : public nav2_util::LifecycleNode {
   std::string scan_topic_{"scan"};
   std::string map_topic_{"map"};
   std::string amcl_map_topic_{"map_amcl"};
+  std::string logs_dir_;  // Member variable to hold log path
 };
 
 }  // namespace nav2_amcl
