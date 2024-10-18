@@ -9,7 +9,8 @@ if [ $# -eq 0 ]; then
     nav2_rviz_plugins \
     nav2_amcl \
     navigation2 \
-    nav2_bringup
+    nav2_bringup \
+    cartographer_ros
 else
     ./scripts/ci/build_with_tests.sh --packages-select $@
 fi
