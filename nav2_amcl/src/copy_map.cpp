@@ -11,9 +11,6 @@
 using std::placeholders::_1;
 
 // Define constant global variables for frame IDs
-const std::string kOdomFrameIdOld = "map";
-const std::string kOdomFrameIdNew = "map_amcl";
-const std::string kBaseFrameId = "base_link";
 
 // Define how many frames to skip before publishing the initial pose
 const int kSkipFrame = 5;
@@ -26,12 +23,16 @@ class MinimalSubscriber : public rclcpp::Node {
         tf_listener_(*tf_buffer_),
         frame_count_(0) {  // Initialize frame counter
 
-    subscription_ = create_subscription<nav_msgs::msg::OccupancyGrid>(kOdomFrameIdOld,
+    // Declare the parameter and get its value
+    this->declare_parameter<std::string>("map_frame_id_new", "map_amcl");
+    this->get_parameter("map_frame_id_new", map_frame_id_new_);
+
+    subscription_ = create_subscription<nav_msgs::msg::OccupancyGrid>(map_frame_id_,
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
         std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
 
     occ_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>(
-        kOdomFrameIdNew, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+        map_frame_id_new_, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
     initial_pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "initialpose", rclcpp::QoS(10));
@@ -46,7 +47,7 @@ class MinimalSubscriber : public rclcpp::Node {
     RCLCPP_INFO(
         this->get_logger(), "map received with frame id: '%s'", msg->header.frame_id.c_str());
     nav_msgs::msg::OccupancyGrid msg_copy = *msg;
-    msg_copy.header.frame_id = kOdomFrameIdNew;
+    msg_copy.header.frame_id = map_frame_id_new_;
     occ_pub_->publish(msg_copy);
   }
 
@@ -54,8 +55,8 @@ class MinimalSubscriber : public rclcpp::Node {
     geometry_msgs::msg::TransformStamped transform_stamped;
     try {
       // Attempt to listen to the transform from 'odom_combined' to 'map'
-      transform_stamped = tf_buffer_->lookupTransform(
-          kOdomFrameIdOld, kBaseFrameId, tf2::TimePointZero);
+      transform_stamped =
+          tf_buffer_->lookupTransform(map_frame_id_, base_frame_id_, tf2::TimePointZero);
 
       // Increment frame counter
       frame_count_++;
@@ -69,7 +70,7 @@ class MinimalSubscriber : public rclcpp::Node {
       // Once we have skipped kSkipFrame frames, convert the transform into a pose and publish it
       geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
       pose_msg.header.stamp = transform_stamped.header.stamp;
-      pose_msg.header.frame_id = kOdomFrameIdNew;
+      pose_msg.header.frame_id = map_frame_id_new_;
 
       // Fill in the Pose information from the transform
       pose_msg.pose.pose.position.x = transform_stamped.transform.translation.x;
@@ -86,13 +87,15 @@ class MinimalSubscriber : public rclcpp::Node {
       initial_pose_pub_->publish(pose_msg);
 
       RCLCPP_INFO(this->get_logger(), "Published initial pose based on transform from '%s' to '%s'",
-          kBaseFrameId.c_str(), kOdomFrameIdNew.c_str());
+          base_frame_id_.c_str(), map_frame_id_new_.c_str());
 
       // Stop the timer after the first successful transform is received
       timer_->cancel();
 
     } catch (const tf2::TransformException& ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
+      RCLCPP_WARN_STREAM(this->get_logger(), "Could not get transform from "
+                                                 << map_frame_id_ << " to " << base_frame_id_
+                                                 << ": " << ex.what());
     }
   }
 
@@ -102,7 +105,10 @@ class MinimalSubscriber : public rclcpp::Node {
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
   rclcpp::TimerBase::SharedPtr timer_;
-  int frame_count_;  // Frame counter
+  int frame_count_;                               // Frame counter
+  std::string map_frame_id_new_;                  // Frame ID that can be set from the parameter
+  const std::string map_frame_id_{"map"};         // Frame ID that can be set from the parameter
+  const std::string base_frame_id_{"base_link"};  // Frame ID that can be set from the parameter
 };
 
 int main(int argc, char* argv[]) {
