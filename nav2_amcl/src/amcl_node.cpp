@@ -1022,7 +1022,6 @@ void AmclNode::initParameters() {
   get_parameter("always_reset_initial_pose", always_reset_initial_pose_);
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
-  get_parameter("amcl_map_topic", amcl_map_topic_);
   get_parameter("logs_dir", logs_dir_);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
