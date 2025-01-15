@@ -23,6 +23,7 @@
 #include "nav2_amcl/amcl_node.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <utility>
@@ -30,6 +31,9 @@
 
 #include "message_filters/subscriber.h"
 #include "nav2_amcl/angleutils.hpp"
+#include "nav2_amcl/log_utils.hpp"  // Include the log_utils header
+#include "nav2_amcl/pf/pf.hpp"
+#include "nav2_amcl/sensors/laser/laser.hpp"
 #include "nav2_util/geometry_utils.hpp"
 #include "nav2_amcl/pf/pf.hpp"
 #include "nav2_util/string_utils.hpp"
@@ -55,8 +59,8 @@ using namespace std::placeholders;
 using rcl_interfaces::msg::ParameterType;
 using namespace std::chrono_literals;
 
-namespace nav2_amcl
-{
+namespace nav2_amcl {
+namespace fs = std::filesystem;
 using nav2_util::geometry_utils::orientationAroundZAxis;
 
 AmclNode::AmclNode(const rclcpp::NodeOptions & options)
@@ -224,9 +228,11 @@ AmclNode::AmclNode(const rclcpp::NodeOptions & options)
     "map_topic", rclcpp::ParameterValue("map"),
     "Topic to subscribe to in order to receive the map to localize on");
 
-  add_parameter(
-    "first_map_only", rclcpp::ParameterValue(false),
-    "Set this to true, when you want to load a new map published from the map_server");
+  add_parameter("first_map_only", rclcpp::ParameterValue(false),
+      "Set this to true, when you want to load a new map published from the map_server");
+
+  add_parameter("logs_dir", rclcpp::ParameterValue(std::string("/tmp/amcl_logs")),
+      "Directory to store the AMCL pose logs");
 }
 
 AmclNode::~AmclNode()
@@ -528,6 +534,13 @@ AmclNode::initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped::Sha
     RCLCPP_ERROR(get_logger(), "Received initialpose message is malformed. Rejecting.");
     return;
   }
+  if (nav2_util::strip_leading_slash(msg->header.frame_id) == "map") {
+    RCLCPP_WARN(get_logger(),
+        "Got initial pose in frame \"%s\"; set it to the global frame, "
+        "\"%s\"",
+        nav2_util::strip_leading_slash(msg->header.frame_id).c_str(), global_frame_id_.c_str());
+    msg->header.frame_id = global_frame_id_;
+  }
   if (nav2_util::strip_leading_slash(msg->header.frame_id) != global_frame_id_) {
     RCLCPP_WARN(
       get_logger(),
@@ -614,9 +627,8 @@ AmclNode::handleInitialPose(geometry_msgs::msg::PoseWithCovarianceStamped & msg)
   initial_pose_is_known_ = true;
 }
 
-void
-AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan)
-{
+void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan) {
+  RCLCPP_WARN(get_logger(), "!!!!!!!!!!!!!!! laserReceived");
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
 
   // Since the sensor data is continually being published by the simulator or robot,
@@ -969,6 +981,15 @@ AmclNode::publishAmclPose(
     last_published_pose_ = *p;
     first_pose_sent_ = true;
     pose_pub_->publish(std::move(p));
+
+    // Save the pose to a JSON file
+    if (!logs_dir_.empty()) {
+      fs::path log_path = logs_dir_ / fs::path("result.csv");
+
+      savePoseToCsv(last_published_pose_, log_path);
+      RCLCPP_INFO(get_logger(), "Pose saved to: %s", log_path.c_str());
+    }
+
   } else {
     RCLCPP_WARN(
       get_logger(), "AMCL covariance or pose is NaN, likely due to an invalid "
@@ -1018,10 +1039,14 @@ AmclNode::sendMapToOdomTransform(const tf2::TimePoint & transform_expiration)
   // AMCL will update transform only when it has knowledge about robot's initial position
   if (!initial_pose_is_known_) {return;}
   geometry_msgs::msg::TransformStamped tmp_tf_stamped;
-  tmp_tf_stamped.header.frame_id = global_frame_id_;
+  // tmp_tf_stamped.header.frame_id = global_frame_id_;
+  // tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
+  // tmp_tf_stamped.child_frame_id = odom_frame_id_;
+  // tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
   tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
-  tmp_tf_stamped.child_frame_id = odom_frame_id_;
-  tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
+  tmp_tf_stamped.header.frame_id = odom_frame_id_;
+  tmp_tf_stamped.child_frame_id = global_frame_id_;
+  tf2::impl::Converter<false, true>::convert(latest_tf_, tmp_tf_stamped.transform);
   tf_broadcaster_->sendTransform(tmp_tf_stamped);
 }
 
@@ -1099,6 +1124,7 @@ AmclNode::initParameters()
   get_parameter("always_reset_initial_pose", always_reset_initial_pose_);
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
+  get_parameter("logs_dir", logs_dir_);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
   transform_tolerance_ = tf2::durationFromSec(tmp_tol);
@@ -1384,10 +1410,8 @@ AmclNode::dynamicParametersCallback(
   return result;
 }
 
-void
-AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
-{
-  RCLCPP_DEBUG(get_logger(), "AmclNode: A new map was received.");
+void AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+  RCLCPP_INFO(get_logger(), "AmclNode: A new map was received.");
   if (!nav2_util::validateMsg(*msg)) {
     RCLCPP_ERROR(get_logger(), "Received map message is malformed. Rejecting.");
     return;
@@ -1399,22 +1423,21 @@ AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
   first_map_received_ = true;
 }
 
-void
-AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid & msg)
-{
+void AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid& msg_origin) {
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
-
-  RCLCPP_INFO(
-    get_logger(), "Received a %d X %d map @ %.3f m/pix",
-    msg.info.width,
-    msg.info.height,
-    msg.info.resolution);
+  nav_msgs::msg::OccupancyGrid msg = msg_origin;
+  RCLCPP_INFO(get_logger(), "Received a %d X %d map @ %.3f m/pix", msg.info.width, msg.info.height,
+      msg.info.resolution);
   if (msg.header.frame_id != global_frame_id_) {
-    RCLCPP_WARN(
-      get_logger(), "Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could"
-      " cause issues with reading published topics",
-      msg.header.frame_id.c_str(),
-      global_frame_id_.c_str());
+    msg.header.frame_id = global_frame_id_;
+    RCLCPP_WARN(get_logger(), "Reset frame_id of map received:'%s' to match global_frame_id:'%s'. ",
+        msg_origin.header.frame_id.c_str(), msg.header.frame_id.c_str());
+  }
+  if (msg.header.frame_id != global_frame_id_) {
+    RCLCPP_WARN(get_logger(),
+        "Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could"
+        " cause issues with reading published topics",
+        msg.header.frame_id.c_str(), global_frame_id_.c_str());
   }
   freeMapDependentMemory();
   map_ = convertMap(msg);
@@ -1503,9 +1526,8 @@ AmclNode::initTransforms()
   latest_tf_ = tf2::Transform::getIdentity();
 }
 
-void
-AmclNode::initMessageFilters()
-{
+void AmclNode::initMessageFilters() {
+  RCLCPP_INFO_STREAM(get_logger(), "initMessageFilters: " << scan_topic_ << ", " << odom_frame_id_);
   auto sub_opt = rclcpp::SubscriptionOptions();
   sub_opt.callback_group = callback_group_;
   laser_scan_sub_ = std::make_unique<message_filters::Subscriber<sensor_msgs::msg::LaserScan,
