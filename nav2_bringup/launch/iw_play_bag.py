@@ -30,7 +30,7 @@ def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("nav2_bringup")
     bag_file = LaunchConfiguration("bag")
-    qos_file = LaunchConfiguration("qos", default="/iw_data/config/qos/amcl.yaml")
+    qos_file = LaunchConfiguration("qos", default="/data/iw/config/qos/amcl.yaml")
 
     use_rviz = LaunchConfiguration("use_rviz", default="true")
     use_sim_time = LaunchConfiguration("use_sim_time", default="false")
@@ -44,7 +44,7 @@ def generate_launch_description():
         ),
     )
 
-    rviz_config_dir = os.path.join("/iw_data/config/rviz/iw_amcl.rviz")
+    rviz_config_dir = os.path.join("/data/iw/config/rviz/iw_amcl.rviz")
 
     return LaunchDescription(
         [

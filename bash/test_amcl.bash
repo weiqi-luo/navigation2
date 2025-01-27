@@ -1,6 +1,6 @@
 bag=/data/iw/bmw_tests/20240826/logs_v3.0.9/bags_ros2/2e08b7de-d742-4e53-b2f0-de131c7bfb48-270-str-2024-08-26T073427+0000_2024-08-26-07-59-33_5
 # bag=/data/iw/bmw_tests/20241002/899_no_initial_pose_0716/2e08b7de-d742-4e53-b2f0-de131c7bfb48-270-str-2024-09-30T065541+0000_2024-10-01-05-10-47_267
-params_file=/home/user/ros2_ws/src/navigation2/nav2_bringup/tests/iw_nav2_params.yaml
+params_file=/home/user/ros2_ws/src/navigation2/nav2_bringup/params/iw_nav2_params.yaml
 
 # logs_dir
 bag_filename=`basename $bag`

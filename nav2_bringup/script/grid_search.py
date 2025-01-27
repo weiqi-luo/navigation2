@@ -179,8 +179,8 @@ def main():
     parser.add_argument(
         "--logs_dir",
         type=str,
-        default="/iw_data/amcl_logs/",
-        help="Directory path for logs (default: /iw_data/amcl_logs/)",
+        default="/data/iw/amcl_logs/",
+        help="Directory path for logs (default: /data/iw/amcl_logs/)",
     )
     parser.add_argument(
         "--rate",

@@ -44,8 +44,8 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
+    map_topic_name = LaunchConfiguration("map_topic_name")
 
-    lifecycle_nodes = ["map_server"]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -123,35 +123,25 @@ def generate_launch_description():
         description="Full path to map yaml file to load",
     )
 
+    declare_map_topic_name_cmd = DeclareLaunchArgument(
+        "map_topic_name",
+        default_value="map",
+        description="Topic name for the map",
+    )
+
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(["not ", use_composition])),
         actions=[
             SetParameter("use_sim_time", use_sim_time),
+            SetParameter("topic_name", map_topic_name),
             Node(
-                condition=IfCondition(
-                    EqualsSubstitution(LaunchConfiguration("map_yaml_file"), "")
-                ),
                 package="nav2_map_server",
                 executable="map_server",
                 name="map_server",
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params],
-                arguments=["--ros-args", "--log-level", log_level],
-                remappings=remappings,
-            ),
-            Node(
-                condition=IfCondition(
-                    NotEqualsSubstitution(LaunchConfiguration("map_yaml_file"), "")
-                ),
-                package="nav2_map_server",
-                executable="map_server",
-                name="map_server",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_params, {"yaml_filename": map_yaml_file}],
+                parameters=[configured_params, {"yaml_filename": map_yaml_file, "topic_name": map_topic_name}],
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=remappings,
             ),
@@ -161,51 +151,7 @@ def generate_launch_description():
                 name="lifecycle_manager_localization",
                 output="screen",
                 arguments=["--ros-args", "--log-level", log_level],
-                parameters=[{"autostart": autostart}, {"node_names": lifecycle_nodes}],
-            ),
-        ],
-    )
-    # LoadComposableNode for map server twice depending if we should use the
-    # value of map from a CLI or launch default or user defined value in the
-    # yaml configuration file. They are separated since the conditions
-    # currently only work on the LoadComposableNodes commands and not on the
-    # ComposableNode node function itself
-    load_composable_nodes = GroupAction(
-        condition=IfCondition(use_composition),
-        actions=[
-            SetParameter("use_sim_time", use_sim_time),
-            LoadComposableNodes(
-                target_container=container_name_full,
-                condition=IfCondition(
-                    EqualsSubstitution(LaunchConfiguration("map_yaml_file"), "")
-                ),
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package="nav2_map_server",
-                        plugin="nav2_map_server::MapServer",
-                        name="map_server",
-                        parameters=[configured_params],
-                        remappings=remappings,
-                    ),
-                ],
-            ),
-            LoadComposableNodes(
-                target_container=container_name_full,
-                condition=IfCondition(
-                    NotEqualsSubstitution(LaunchConfiguration("map_yaml_file"), "")
-                ),
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package="nav2_map_server",
-                        plugin="nav2_map_server::MapServer",
-                        name="map_server",
-                        parameters=[
-                            configured_params,
-                            {"yaml_filename": map_yaml_file},
-                        ],
-                        remappings=remappings,
-                    ),
-                ],
+                parameters=[{"autostart": autostart}, {"node_names": ["map_server"]}],
             ),
         ],
     )
@@ -219,6 +165,7 @@ def generate_launch_description():
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
     ld.add_action(declare_map_yaml_cmd)
+    ld.add_action(declare_map_topic_name_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
@@ -229,6 +176,5 @@ def generate_launch_description():
 
     # Add the actions to launch all of the localization nodes
     ld.add_action(load_nodes)
-    ld.add_action(load_composable_nodes)
 
     return ld
