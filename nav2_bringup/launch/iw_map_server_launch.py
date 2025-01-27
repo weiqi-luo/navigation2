@@ -28,6 +28,7 @@ from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode, ParameterFile
 from nav2_common.launch import RewrittenYaml
 from rclpy.logging import get_logger  # Import ROS 2 logger
+from launch.actions import OpaqueFunction
 
 
 def generate_launch_description():
@@ -38,15 +39,54 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     autostart = LaunchConfiguration("autostart")
     params_file = LaunchConfiguration("params_file")
-    use_composition = LaunchConfiguration("use_composition")
-    container_name = LaunchConfiguration("container_name")
-    container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
-    map_topic_name = LaunchConfiguration("map_topic_name")
-    map_frame_id = LaunchConfiguration("map_frame_id")
+    map_names = LaunchConfiguration("map_names")
+    
+    # Create a function to handle the map_names splitting
+    def get_map_names(context):
+        map_names_str = map_names.perform(context)
+        return map_names_str.split(',')
 
+    # Create an OpaqueFunction to process the map names
+    def launch_setup(context):
+        map_names_list = get_map_names(context)
+        
+        nodes = [
+            SetParameter("use_sim_time", use_sim_time),
+            Node(
+                package="nav2_lifecycle_manager",
+                executable="lifecycle_manager",
+                name="lifecycle_manager_localization",
+                output="screen",
+                arguments=["--ros-args", "--log-level", log_level],
+                parameters=[{"autostart": autostart}, {"node_names": map_names_list}],
+            ),
+        ]   
+        
+        for name in map_names_list:
+            nodes.append(
+                Node(
+                    package="nav2_map_server",
+                    executable="map_server",
+                    name=name,
+                    output="screen",
+                    respawn=use_respawn,
+                    respawn_delay=2.0,
+                    parameters=[
+                        configured_params,
+                        {
+                            "yaml_filename": map_yaml_file,
+                            "topic_name": name,
+                            "frame_id": name,
+                        },
+                    ],
+                    arguments=["--ros-args", "--log-level", log_level],
+                    remappings=remappings,
+                ),
+            )
+        return nodes
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -124,50 +164,12 @@ def generate_launch_description():
         description="Full path to map yaml file to load",
     )
 
-    declare_map_topic_name_cmd = DeclareLaunchArgument(
-        "map_topic_name",
+    declare_map_names_cmd = DeclareLaunchArgument(
+        "map_names",
         default_value="map",
-        description="Topic name for the map",
+        description="Topic name as well as the frame id for the map",
     )
 
-    declare_map_frame_id_cmd = DeclareLaunchArgument(
-        "map_frame_id",
-        default_value="map",
-        description="Frame id for the map",
-    )
-
-    load_nodes = GroupAction(
-        condition=IfCondition(PythonExpression(["not ", use_composition])),
-        actions=[
-            SetParameter("use_sim_time", use_sim_time),
-            Node(
-                package="nav2_map_server",
-                executable="map_server",
-                name="map_server",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[
-                    configured_params,
-                    {
-                        "yaml_filename": map_yaml_file,
-                        "topic_name": map_topic_name,
-                        "frame_id": map_frame_id,
-                    },
-                ],
-                arguments=["--ros-args", "--log-level", log_level],
-                remappings=remappings,
-            ),
-            Node(
-                package="nav2_lifecycle_manager",
-                executable="lifecycle_manager",
-                name="lifecycle_manager_localization",
-                output="screen",
-                arguments=["--ros-args", "--log-level", log_level],
-                parameters=[{"autostart": autostart}, {"node_names": ["map_server"]}],
-            ),
-        ],
-    )
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -178,7 +180,7 @@ def generate_launch_description():
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
     ld.add_action(declare_map_yaml_cmd)
-    ld.add_action(declare_map_topic_name_cmd)
+    ld.add_action(declare_map_names_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
@@ -186,8 +188,6 @@ def generate_launch_description():
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
-
-    # Add the actions to launch all of the localization nodes
-    ld.add_action(load_nodes)
+    ld.add_action(OpaqueFunction(function=launch_setup))
 
     return ld
