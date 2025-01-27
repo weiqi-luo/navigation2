@@ -45,6 +45,7 @@ def generate_launch_description():
     log_level = LaunchConfiguration("log_level")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
     map_topic_name = LaunchConfiguration("map_topic_name")
+    map_frame_id = LaunchConfiguration("map_frame_id")
 
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -129,11 +130,16 @@ def generate_launch_description():
         description="Topic name for the map",
     )
 
+    declare_map_frame_id_cmd = DeclareLaunchArgument(
+        "map_frame_id",
+        default_value="map",
+        description="Frame id for the map",
+    )
+
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(["not ", use_composition])),
         actions=[
             SetParameter("use_sim_time", use_sim_time),
-            SetParameter("topic_name", map_topic_name),
             Node(
                 package="nav2_map_server",
                 executable="map_server",
@@ -141,7 +147,14 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params, {"yaml_filename": map_yaml_file, "topic_name": map_topic_name}],
+                parameters=[
+                    configured_params,
+                    {
+                        "yaml_filename": map_yaml_file,
+                        "topic_name": map_topic_name,
+                        "frame_id": map_frame_id,
+                    },
+                ],
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=remappings,
             ),
