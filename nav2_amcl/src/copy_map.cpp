@@ -27,13 +27,6 @@ class MinimalSubscriber : public rclcpp::Node {
     this->declare_parameter<std::string>("map_frame_id_new", "map_amcl");
     this->get_parameter("map_frame_id_new", map_frame_id_new_);
 
-    subscription_ = create_subscription<nav_msgs::msg::OccupancyGrid>(map_frame_id_,
-        rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-        std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
-
-    occ_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>(
-        map_frame_id_new_, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
-
     initial_pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "initialpose", rclcpp::QoS(10));
 
@@ -43,14 +36,6 @@ class MinimalSubscriber : public rclcpp::Node {
   }
 
  private:
-  void topic_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) const {
-    RCLCPP_INFO(
-        this->get_logger(), "map received with frame id: '%s'", msg->header.frame_id.c_str());
-    nav_msgs::msg::OccupancyGrid msg_copy = *msg;
-    msg_copy.header.frame_id = map_frame_id_new_;
-    occ_pub_->publish(msg_copy);
-  }
-
   void listen_to_transform() {
     geometry_msgs::msg::TransformStamped transform_stamped;
     try {
@@ -99,8 +84,6 @@ class MinimalSubscriber : public rclcpp::Node {
     }
   }
 
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr subscription_;
-  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_pub_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
