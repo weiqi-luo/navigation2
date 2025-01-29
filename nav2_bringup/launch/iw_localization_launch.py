@@ -17,14 +17,12 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def launch_setup(context):
-    # Get the launch directory
-    use_rviz = LaunchConfiguration("use_rviz", default="true")
-    use_sim_time = LaunchConfiguration("use_sim_time", default="false")
+    # Access launch configurations
+    use_rviz = LaunchConfiguration("use_rviz")
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    rate = LaunchConfiguration("rate")
     bag_file = LaunchConfiguration("bag_file")
-    params_file = LaunchConfiguration("params_file")
-    logs_dir = LaunchConfiguration("logs_dir")
-    rate = LaunchConfiguration("rate", default="1.0")  # Added rate configuration
-    use_remap = LaunchConfiguration("use_remap", default="false")  # New remap flag
+    log_level = LaunchConfiguration("log_level")
 
     bringup_dir = get_package_share_directory("nav2_bringup")
     nav2_launch_file_dir = os.path.join(bringup_dir, "launch")
@@ -40,65 +38,39 @@ def launch_setup(context):
             "play",
             bag_file.perform(context),
             "--clock",
+            # Handle QoS mismatches after ROS1 to ROS2 bag conversion
             "--qos-profile-overrides-path",
             qos_file,
+            # Play the bag file at the specified rate
             "--rate",
-            rate.perform(context),  # Play the bag file at the specified rate
-        ]
-        + (
-            ["--remap", "/map:=/map_navigation"]
-            if use_remap.perform(context) == "true"
-            else []
-        ),
+            rate.perform(context),  
+            # Remap /map topic to prevent confusion, since it will be only used for navigation not localization
+            "--remap", 
+            "/map:=/map_navigation",   
+        ],
         output="screen",
     )
 
     return [
-        DeclareLaunchArgument(
-            "use_sim_time",
-            default_value="false",
-            description="Use simulation (Gazebo) clock if true",
-        ),
-        DeclareLaunchArgument(
-            "params_file",
-            description="Full path to the parameters file to use for the Nav2 launch",
-        ),
-        DeclareLaunchArgument(
-            "bag_file",
-            description="Full path to the ROS2 bag file to play",
-        ),
-        DeclareLaunchArgument(
-            "logs_dir",
-            description="Directory to store logs",
-        ),
-        DeclareLaunchArgument(
-            "rate",
-            default_value="1.0",
-            description="Playback rate for the ROS2 bag file (e.g., 0.5 for half speed, 2.0 for double speed)",
-        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                [nav2_launch_file_dir, "/iw_localization_launch.py"]
+                [nav2_launch_file_dir, "/iw_amcl_launch.py"]
             ),
-            launch_arguments={
-                "use_sim_time": use_sim_time,
-                "params_file": params_file,
-                "logs_dir": logs_dir,
-                "log_level": "info",
-            }.items(),
+            launch_arguments=[('use_sim_time', use_sim_time), ('log_level', log_level)],
         ),
         Node(
             package="nav2_amcl",
             executable="initial_pose_publisher",
             name="initial_pose_publisher",
             output="screen",
+            parameters=[{"use_sim_time": use_sim_time, "log_level": log_level}],
         ),
         Node(
             package="rviz2",
             executable="rviz2",
             name="rviz2_baseline",
             arguments=["-d", rviz_config_baseline],
-            parameters=[{"use_sim_time": use_sim_time}],
+            parameters=[{"use_sim_time": use_sim_time, "log_level": log_level}],
             condition=IfCondition(use_rviz),
             output="screen",
         ),
@@ -107,24 +79,57 @@ def launch_setup(context):
             executable="rviz2",
             name="rviz2_amcl",
             arguments=["-d", rviz_config_amcl],
-            parameters=[{"use_sim_time": use_sim_time}],
+            parameters=[{"use_sim_time": use_sim_time, "log_level": log_level}],
             condition=IfCondition(use_rviz),
-            output="screen",
+            output="screen",    
         ),
         bag_play_cmd,
         # Event handler to shutdown the launch system when the bag file finishes playing
         RegisterEventHandler(
             OnProcessExit(
                 target_action=bag_play_cmd,
-                on_exit=[Shutdown()],  # Correct shutdown action
+                on_exit=[Shutdown()],
             )
         ),
     ]
 
 
 def generate_launch_description():
+    # Declare launch arguments first
+    declare_rate_cmd = DeclareLaunchArgument(
+        "rate",
+        default_value="1.0",
+        description="Playback rate for the ROS2 bag file",
+    )
+    declare_use_rviz_cmd = DeclareLaunchArgument(
+        "use_rviz",
+        default_value="true",
+        description="Whether to start RViz2",
+    )
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        "use_sim_time",
+        default_value="false",
+        description="Use simulation (Gazebo) clock if true",
+    )
+    declare_log_level_cmd = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Log level for the ROS2 bag file",
+    )
+    declare_bag_file_cmd = DeclareLaunchArgument(
+        "bag_file",
+        description="Full path to the ROS2 bag file to play",
+    )
+
     return LaunchDescription(
         [
+            # Add declarations first
+            declare_rate_cmd,
+            declare_use_rviz_cmd,
+            declare_use_sim_time_cmd,
+            declare_log_level_cmd,
+            declare_bag_file_cmd,
+            # Then add the setup function
             OpaqueFunction(function=launch_setup),
         ]
     )

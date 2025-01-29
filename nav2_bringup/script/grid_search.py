@@ -69,7 +69,7 @@ def launch_ros2(bag_file, params_file, logs_dir, rate, use_rviz):
             [
                 "ros2",
                 "launch",
-                "nav2_bringup/launch/iw_nav2_bringup_launch.py",
+                "nav2_bringup/launch/iw_localization_launch.py",
                 f"bag_file:={bag_file}",
                 f"params_file:={params_file}",
                 f"logs_dir:={logs_dir}",
