@@ -34,11 +34,12 @@ from launch.actions import OpaqueFunction
 def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("nav2_bringup")
-
     namespace = LaunchConfiguration("namespace")
     use_sim_time = LaunchConfiguration("use_sim_time")
     autostart = LaunchConfiguration("autostart")
     params_file = LaunchConfiguration("params_file")
+    use_composition = LaunchConfiguration("use_composition")
+    container_name = LaunchConfiguration("container_name")
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
@@ -52,41 +53,79 @@ def generate_launch_description():
     # Create an OpaqueFunction to process the map names
     def launch_setup(context):
         map_names_list = get_map_names(context)
-        
-        nodes = [
-            SetParameter("use_sim_time", use_sim_time),
-            Node(
-                package="nav2_lifecycle_manager",
-                executable="lifecycle_manager",
-                name="lifecycle_manager_localization",
-                output="screen",
-                arguments=["--ros-args", "--log-level", log_level],
-                parameters=[{"autostart": autostart}, {"node_names": map_names_list}],
-            ),
-        ]   
-        
-        for name in map_names_list:
-            nodes.append(
-                Node(
-                    package="nav2_map_server",
-                    executable="map_server",
-                    name=name,
-                    output="screen",
-                    respawn=use_respawn,
-                    respawn_delay=2.0,
-                    parameters=[
-                        configured_params,
-                        {
-                            "yaml_filename": map_yaml_file,
-                            "topic_name": name,
-                            "frame_id": name,
-                        },
+        use_composition_val = LaunchConfiguration("use_composition").perform(context)
+        if use_composition_val.lower() == "true":
+            # Composable node version
+            container_name_full = (namespace, "/", container_name)
+            composable_nodes = [
+                ComposableNode(
+                    package="nav2_lifecycle_manager",
+                    plugin="nav2_lifecycle_manager::LifecycleManager",
+                    name="lifecycle_manager_localization",
+                    parameters=[{"autostart": autostart}, {"node_names": map_names_list},
                     ],
+                )
+            ]
+            for map_name in map_names_list:
+                composable_nodes.append(
+                    ComposableNode(
+                        package="nav2_map_server",
+                        plugin="nav2_map_server::MapServer",
+                        name=map_name,
+                        parameters=[
+                            configured_params,
+                            {
+                                "yaml_filename": map_yaml_file,
+                                "topic_name": map_name,
+                                "frame_id": map_name,
+                            },
+                        ],
+                        remappings=remappings,
+                    )
+                )
+            return [
+                SetParameter("use_sim_time", use_sim_time),
+                LoadComposableNodes(
+                    target_container=container_name_full,
+                    composable_node_descriptions=composable_nodes,
+                )
+            ]
+        else:
+            # Regular node version
+            nodes = [
+                SetParameter("use_sim_time", use_sim_time),
+                Node(
+                    package="nav2_lifecycle_manager",
+                    executable="lifecycle_manager",
+                    name="lifecycle_manager_localization",
+                    output="screen",
                     arguments=["--ros-args", "--log-level", log_level],
-                    remappings=remappings,
+                    parameters=[{"autostart": autostart}, {"node_names": map_names_list}],
                 ),
-            )
-        return nodes
+            ]
+            
+            for name in map_names_list:
+                nodes.append(
+                    Node(
+                        package="nav2_map_server",
+                        executable="map_server",
+                        name=name,
+                        output="screen",
+                        respawn=use_respawn,
+                        respawn_delay=2.0,
+                        parameters=[
+                            configured_params,
+                            {
+                                "yaml_filename": map_yaml_file,
+                                "topic_name": name,
+                                "frame_id": name,
+                            },
+                        ],
+                        arguments=["--ros-args", "--log-level", log_level],
+                        remappings=remappings,
+                    ),
+                )
+            return nodes
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
