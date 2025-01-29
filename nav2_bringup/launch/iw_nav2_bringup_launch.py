@@ -89,8 +89,8 @@ def launch_setup(context):
         ),
         Node(
             package="nav2_amcl",
-            executable="copy_map",
-            name="copy_map",
+            executable="initial_pose_publisher",
+            name="initial_pose_publisher",
             output="screen",
         ),
         Node(

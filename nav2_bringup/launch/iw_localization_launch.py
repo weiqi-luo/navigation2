@@ -123,12 +123,6 @@ def generate_launch_description():
             SetParameter("use_sim_time", use_sim_time),
             Node(
                 package="nav2_amcl",
-                executable="copy_map",
-                name="copy_map",
-                output="screen",
-            ),
-            Node(
-                package="nav2_amcl",
                 executable="amcl",
                 name="amcl",
                 output="screen",
