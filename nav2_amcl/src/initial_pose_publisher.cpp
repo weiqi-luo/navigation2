@@ -15,10 +15,10 @@ using std::placeholders::_1;
 // Define how many frames to skip before publishing the initial pose
 const int kSkipFrame = 5;
 
-class MinimalSubscriber : public rclcpp::Node {
+class InitialPosePublisher : public rclcpp::Node {
  public:
-  MinimalSubscriber()
-      : Node("minimal_subscriber"),
+  InitialPosePublisher()
+      : Node("initial_pose_publisher"),
         tf_buffer_(std::make_shared<tf2_ros::Buffer>(this->get_clock())),
         tf_listener_(*tf_buffer_),
         frame_count_(0) {  // Initialize frame counter
@@ -31,8 +31,8 @@ class MinimalSubscriber : public rclcpp::Node {
         "initialpose", rclcpp::QoS(10));
 
     // Start listening to the transform
-    timer_ = create_wall_timer(
-        std::chrono::milliseconds(100), std::bind(&MinimalSubscriber::listen_to_transform, this));
+    timer_ = create_wall_timer(std::chrono::milliseconds(100),
+        std::bind(&InitialPosePublisher::listen_to_transform, this));
   }
 
  private:
@@ -96,7 +96,7 @@ class MinimalSubscriber : public rclcpp::Node {
 
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MinimalSubscriber>());
+  rclcpp::spin(std::make_shared<InitialPosePublisher>());
   rclcpp::shutdown();
   return 0;
 }

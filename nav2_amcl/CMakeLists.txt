@@ -22,9 +22,7 @@ find_package(nlohmann_json REQUIRED) # Added for JSON support
 
 nav2_package()
 
-include_directories(
-  include
-)
+include_directories(include)
 
 include(CheckSymbolExists)
 check_symbol_exists(drand48 stdlib.h HAVE_DRAND48)
@@ -37,13 +35,11 @@ add_subdirectory(src/sensors)
 set(executable_name amcl)
 
 add_executable(${executable_name} src/main.cpp)
-add_executable(copy_map src/copy_map.cpp)
+add_executable(initial_pose_publisher src/initial_pose_publisher.cpp)
 
 set(library_name ${executable_name}_core)
 
-add_library(${library_name} SHARED
-  src/amcl_node.cpp
-)
+add_library(${library_name} SHARED src/amcl_node.cpp)
 
 target_include_directories(${library_name} PRIVATE src/include)
 
@@ -70,33 +66,27 @@ set(dependencies
     iw_navigation_interfaces)
 
 ament_target_dependencies(${executable_name} ${dependencies})
-ament_target_dependencies(copy_map ${dependencies})
+ament_target_dependencies(initial_pose_publisher ${dependencies})
 
 target_link_libraries(${executable_name} ${library_name})
-target_link_libraries(copy_map ${library_name})
+target_link_libraries(initial_pose_publisher ${library_name})
 
-ament_target_dependencies(${library_name}
-  ${dependencies}
-)
+ament_target_dependencies(${library_name} ${dependencies})
 
-target_link_libraries(${library_name}
-  map_lib pf_lib sensors_lib
-)
+target_link_libraries(${library_name} map_lib pf_lib sensors_lib)
 
 rclcpp_components_register_nodes(${library_name} "nav2_amcl::AmclNode")
 
-install(TARGETS ${library_name}
+install(
+  TARGETS ${library_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+  RUNTIME DESTINATION bin)
 
 install(TARGETS ${executable_name} RUNTIME DESTINATION lib/${PROJECT_NAME})
-install(TARGETS copy_map RUNTIME DESTINATION lib/${PROJECT_NAME})
+install(TARGETS initial_pose_publisher RUNTIME DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY include/
-  DESTINATION include/
-)
+install(DIRECTORY include/ DESTINATION include/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
