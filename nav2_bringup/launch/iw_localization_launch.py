@@ -58,7 +58,13 @@ def launch_setup(context):
             executable="initial_pose_publisher",
             name="initial_pose_publisher",
             output="screen",
-            parameters=[{"use_sim_time": use_sim_time, "log_level": log_level}],
+            parameters=[{
+                "use_sim_time": use_sim_time, 
+                "log_level": log_level,
+                "map_frame_id_new": "map_amcl", 
+                "map_frame_id": "map", 
+                "base_frame_id": "base_link"
+            }],
         ),
         Node(
             package="rviz2",
