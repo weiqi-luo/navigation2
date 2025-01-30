@@ -44,6 +44,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
     logs_dir = LaunchConfiguration("logs_dir")
+    invert_tf = LaunchConfiguration("invert_tf")
 
     lifecycle_nodes = ["amcl"]
 
@@ -121,6 +122,12 @@ def generate_launch_description():
         description="log level"
     )
 
+    declare_invert_tf_cmd = DeclareLaunchArgument(
+        "invert_tf",
+        default_value="false",
+        description="Invert the tf transform",
+    )
+
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(["not ", use_composition])),
         actions=[
@@ -132,7 +139,11 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params, {"logs_dir": logs_dir}],
+                parameters=[
+                    configured_params, 
+                    {"logs_dir": logs_dir}, 
+                    {"invert_tf": invert_tf},
+                ],
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=remappings,
             ),
@@ -165,6 +176,7 @@ def generate_launch_description():
                         parameters=[
                             configured_params,
                             {"logs_dir": logs_dir},
+                            {"invert_tf": invert_tf},
                         ],
                         remappings=remappings,
                     ),
@@ -196,6 +208,7 @@ def generate_launch_description():
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_invert_tf_cmd)
 
     # Add the actions to launch all of the localization nodes
     ld.add_action(load_nodes)

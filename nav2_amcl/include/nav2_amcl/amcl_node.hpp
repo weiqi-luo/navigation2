@@ -391,7 +391,8 @@ protected:
   double z_rand_;
   std::string scan_topic_{"scan"};
   std::string map_topic_{"map"};
-  std::string logs_dir_;  // Member variable to hold log path
+  bool invert_tf_{false};
+  std::string logs_dir_;
 };
 
 }  // namespace nav2_amcl

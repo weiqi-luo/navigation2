@@ -27,8 +27,9 @@ if [ ! -d "$logs_dir" ]; then
   exit 1
 fi
 
-ros2 launch nav2_bringup/launch/iw_nav2_bringup_launch.py \
+ros2 launch nav2_bringup/launch/iw_localization_launch.py \
     bag_file:=$bag \
     params_file:=$params_file \
     logs_dir:=$logs_dir \
-    use_remap:=true
+    use_sim_time:=true \
+    invert_tf:=true

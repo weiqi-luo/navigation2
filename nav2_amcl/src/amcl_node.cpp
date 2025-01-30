@@ -231,6 +231,10 @@ AmclNode::AmclNode(const rclcpp::NodeOptions & options)
   add_parameter("first_map_only", rclcpp::ParameterValue(false),
       "Set this to true, when you want to load a new map published from the map_server");
 
+  add_parameter(
+      "invert_tf", rclcpp::ParameterValue(false),
+      "Invert the tf transform from the global frame to the odom frame");
+
   add_parameter("logs_dir", rclcpp::ParameterValue(std::string("/tmp/amcl_logs")),
       "Directory to store the AMCL pose logs");
 }
@@ -627,8 +631,8 @@ AmclNode::handleInitialPose(geometry_msgs::msg::PoseWithCovarianceStamped & msg)
   initial_pose_is_known_ = true;
 }
 
-void AmclNode::laserReceived(sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan) {
-  RCLCPP_WARN(get_logger(), "!!!!!!!!!!!!!!! laserReceived");
+void AmclNode::laserReceived(
+    sensor_msgs::msg::LaserScan::ConstSharedPtr laser_scan) {
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
 
   // Since the sensor data is continually being published by the simulator or robot,
@@ -1039,14 +1043,19 @@ AmclNode::sendMapToOdomTransform(const tf2::TimePoint & transform_expiration)
   // AMCL will update transform only when it has knowledge about robot's initial position
   if (!initial_pose_is_known_) {return;}
   geometry_msgs::msg::TransformStamped tmp_tf_stamped;
-  // tmp_tf_stamped.header.frame_id = global_frame_id_;
-  // tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
-  // tmp_tf_stamped.child_frame_id = odom_frame_id_;
-  // tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
   tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
-  tmp_tf_stamped.header.frame_id = odom_frame_id_;
-  tmp_tf_stamped.child_frame_id = global_frame_id_;
-  tf2::impl::Converter<false, true>::convert(latest_tf_, tmp_tf_stamped.transform);
+  if (invert_tf_) {
+    tmp_tf_stamped.header.frame_id = odom_frame_id_;
+    tmp_tf_stamped.child_frame_id = global_frame_id_;
+    tf2::impl::Converter<false, true>::convert(latest_tf_,
+                                               tmp_tf_stamped.transform);
+  } else {
+    tmp_tf_stamped.header.frame_id = global_frame_id_;
+    tmp_tf_stamped.child_frame_id = odom_frame_id_;
+    tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(),
+                                               tmp_tf_stamped.transform);
+  }
+
   tf_broadcaster_->sendTransform(tmp_tf_stamped);
 }
 
@@ -1124,6 +1133,7 @@ AmclNode::initParameters()
   get_parameter("always_reset_initial_pose", always_reset_initial_pose_);
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
+  get_parameter("invert_tf", invert_tf_);
   get_parameter("logs_dir", logs_dir_);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);

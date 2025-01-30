@@ -20,13 +20,8 @@
   <maintainer email="mohammad.haghighipanah@intel.com">Mohammad Haghighipanah</maintainer>
   <license>LGPL-2.1-or-later</license>
 
-  <!-- Build tools -->
   <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <!-- Build dependencies -->
   <build_depend>nav2_common</build_depend>
-
-  <!-- Runtime dependencies -->
   <depend>rclcpp</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>geometry_msgs</depend>
@@ -42,9 +37,7 @@
   <depend>launch_testing</depend>
   <depend>pluginlib</depend>
   <depend>iw_navigation_interfaces</depend>
-  <depend>nlohmann_json</depend>  <!-- Added JSON dependency -->
-
-  <!-- Test dependencies -->
+  <depend>nlohmann_json</depend>
   <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_lint_auto</test_depend>
 
