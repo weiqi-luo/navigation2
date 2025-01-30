@@ -538,13 +538,6 @@ AmclNode::initialPoseReceived(geometry_msgs::msg::PoseWithCovarianceStamped::Sha
     RCLCPP_ERROR(get_logger(), "Received initialpose message is malformed. Rejecting.");
     return;
   }
-  if (nav2_util::strip_leading_slash(msg->header.frame_id) == "map") {
-    RCLCPP_WARN(get_logger(),
-        "Got initial pose in frame \"%s\"; set it to the global frame, "
-        "\"%s\"",
-        nav2_util::strip_leading_slash(msg->header.frame_id).c_str(), global_frame_id_.c_str());
-    msg->header.frame_id = global_frame_id_;
-  }
   if (nav2_util::strip_leading_slash(msg->header.frame_id) != global_frame_id_) {
     RCLCPP_WARN(
       get_logger(),
@@ -1494,13 +1487,8 @@ void AmclNode::mapReceived(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
 void AmclNode::handleMapMessage(const nav_msgs::msg::OccupancyGrid& msg_origin) {
   std::lock_guard<std::recursive_mutex> cfl(mutex_);
   nav_msgs::msg::OccupancyGrid msg = msg_origin;
-  RCLCPP_INFO(get_logger(), "Received a %d X %d map @ %.3f m/pix", msg.info.width, msg.info.height,
-      msg.info.resolution);
-  if (msg.header.frame_id != global_frame_id_) {
-    msg.header.frame_id = global_frame_id_;
-    RCLCPP_WARN(get_logger(), "Reset frame_id of map received:'%s' to match global_frame_id:'%s'. ",
-        msg_origin.header.frame_id.c_str(), msg.header.frame_id.c_str());
-  }
+  RCLCPP_INFO(get_logger(), "Received a %d X %d map @ %.3f m/pix %s", msg.info.width,
+      msg.info.height, msg.info.resolution, msg.header.frame_id.c_str());
   if (msg.header.frame_id != global_frame_id_) {
     RCLCPP_WARN(get_logger(),
         "Frame_id of map received:'%s' doesn't match global_frame_id:'%s'. This could"
