@@ -74,7 +74,9 @@ def generate_launch_description():
     )
 
     declare_namespace_cmd = DeclareLaunchArgument(
-        "namespace", default_value="", description="Top-level namespace"
+        "namespace", 
+        default_value="", 
+        description="Top-level namespace"
     )
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -114,7 +116,9 @@ def generate_launch_description():
     )
 
     declare_log_level_cmd = DeclareLaunchArgument(
-        "log_level", default_value="info", description="log level"
+        "log_level", 
+        default_value="info", 
+        description="log level"
     )
 
     load_nodes = GroupAction(
