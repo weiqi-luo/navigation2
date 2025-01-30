@@ -26,9 +26,12 @@ def launch_setup(context):
 
     bringup_dir = get_package_share_directory("nav2_bringup")
     nav2_launch_file_dir = os.path.join(bringup_dir, "launch")
-    rviz_config_baseline = os.path.join("/data/iw/config/rviz/iw_baseline.rviz")
-    rviz_config_amcl = os.path.join("/data/iw/config/rviz/iw_amcl.rviz")
-    qos_file = "/data/iw/config/qos/amcl.yaml"
+    nav2_rviz_dir = os.path.join(bringup_dir, "rviz")
+    nav2_config_dir = os.path.join(bringup_dir, "params")
+    
+    rviz_config_baseline = os.path.join(nav2_rviz_dir, "iw_baseline.rviz")
+    rviz_config_amcl = os.path.join(nav2_rviz_dir, "iw_amcl.rviz")
+    qos_file = os.path.join(nav2_config_dir, "qos.yaml")
 
     # Command to play the bag file 
     # Remap /map topic to prevent confusion, since it will be only used for navigation not localization
