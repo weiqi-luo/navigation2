@@ -989,9 +989,7 @@ AmclNode::publishAmclPose(
     // Save the pose to a JSON file
     if (!logs_dir_.empty()) {
       fs::path log_path = logs_dir_ / fs::path("result.csv");
-
       savePoseToCsv(last_published_pose_, log_path);
-      RCLCPP_INFO(get_logger(), "Pose saved to: %s", log_path.c_str());
     }
 
   } else {
@@ -1183,6 +1181,66 @@ AmclNode::initParameters()
   if (always_reset_initial_pose_) {
     initial_pose_is_known_ = false;
   }
+
+  RCLCPP_INFO(get_logger(), "Frame and Topic Parameters:");
+  RCLCPP_INFO(get_logger(), "  base_frame_id: %s", base_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  global_frame_id: %s", global_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  odom_frame_id: %s", odom_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  scan_topic: %s", scan_topic_.c_str());
+  RCLCPP_INFO(get_logger(), "  map_topic: %s", map_topic_.c_str());
+
+  RCLCPP_INFO(get_logger(), "Particle Filter Parameters:");
+  RCLCPP_INFO(get_logger(), "  max_particles: %d", max_particles_);
+  RCLCPP_INFO(get_logger(), "  min_particles: %d", min_particles_);
+  RCLCPP_INFO(get_logger(), "  pf_err: %.3f", pf_err_);
+  RCLCPP_INFO(get_logger(), "  pf_z: %.3f", pf_z_);
+  RCLCPP_INFO(get_logger(), "  resample_interval: %d", resample_interval_);
+
+  RCLCPP_INFO(get_logger(), "Recovery Parameters:");
+  RCLCPP_INFO(get_logger(), "  recovery_alpha_fast: %.3f", alpha_fast_);
+  RCLCPP_INFO(get_logger(), "  recovery_alpha_slow: %.3f", alpha_slow_);
+  RCLCPP_INFO(get_logger(), "  save_pose_rate: %.3f", save_pose_rate);
+
+  RCLCPP_INFO(get_logger(), "Motion Model Parameters:");
+  RCLCPP_INFO(get_logger(), "  robot_model_type: %s", robot_model_type_.c_str());
+  RCLCPP_INFO(get_logger(), "  alpha1: %.3f", alpha1_);
+  RCLCPP_INFO(get_logger(), "  alpha2: %.3f", alpha2_);
+  RCLCPP_INFO(get_logger(), "  alpha3: %.3f", alpha3_);
+  RCLCPP_INFO(get_logger(), "  alpha4: %.3f", alpha4_);
+  RCLCPP_INFO(get_logger(), "  alpha5: %.3f", alpha5_);
+  RCLCPP_INFO(get_logger(), "  update_min_a: %.3f", a_thresh_);
+  RCLCPP_INFO(get_logger(), "  update_min_d: %.3f", d_thresh_);
+
+  RCLCPP_INFO(get_logger(), "Laser Sensor Parameters:");
+  RCLCPP_INFO(get_logger(), "  laser_model_type: %s", sensor_model_type_.c_str());
+  RCLCPP_INFO(get_logger(), "  laser_max_range: %.3f", laser_max_range_);
+  RCLCPP_INFO(get_logger(), "  laser_min_range: %.3f", laser_min_range_);
+  RCLCPP_INFO(get_logger(), "  max_beams: %d", max_beams_);
+  RCLCPP_INFO(get_logger(), "  laser_likelihood_max_dist: %.3f", laser_likelihood_max_dist_);
+  RCLCPP_INFO(get_logger(), "  z_hit: %.3f", z_hit_);
+  RCLCPP_INFO(get_logger(), "  z_rand: %.3f", z_rand_);
+  RCLCPP_INFO(get_logger(), "  z_short: %.3f", z_short_);
+  RCLCPP_INFO(get_logger(), "  z_max: %.3f", z_max_);
+  RCLCPP_INFO(get_logger(), "  lambda_short: %.3f", lambda_short_);
+  RCLCPP_INFO(get_logger(), "  sigma_hit: %.3f", sigma_hit_);
+
+  RCLCPP_INFO(get_logger(), "Beam Skip Parameters:");
+  RCLCPP_INFO(get_logger(), "  do_beamskip: %s", do_beamskip_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  beam_skip_distance: %.3f", beam_skip_distance_);
+  RCLCPP_INFO(get_logger(), "  beam_skip_threshold: %.3f", beam_skip_threshold_);
+  RCLCPP_INFO(get_logger(), "  beam_skip_error_threshold: %.3f", beam_skip_error_threshold_);
+
+  RCLCPP_INFO(get_logger(), "Other Parameters:");
+  RCLCPP_INFO(get_logger(), "  tf_broadcast: %s", tf_broadcast_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  transform_tolerance: %.3f", tmp_tol);
+  RCLCPP_INFO(get_logger(), "  first_map_only: %s", first_map_only_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  always_reset_initial_pose: %s",
+      always_reset_initial_pose_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  set_initial_pose: %s", set_initial_pose_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  initial_pose: [%.3f, %.3f, %.3f, %.3f]", initial_pose_x_,
+      initial_pose_y_, initial_pose_z_, initial_pose_yaw_);
+  RCLCPP_INFO(get_logger(), "  invert_tf: %s", invert_tf_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  logs_dir: %s", logs_dir_.c_str());
 }
 
 /**
