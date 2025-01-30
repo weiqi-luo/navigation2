@@ -33,11 +33,9 @@ from launch.actions import OpaqueFunction
 
 def generate_launch_description():
     # Get the launch directory
-    bringup_dir = get_package_share_directory("nav2_bringup")
     namespace = LaunchConfiguration("namespace")
     use_sim_time = LaunchConfiguration("use_sim_time")
     autostart = LaunchConfiguration("autostart")
-    params_file = LaunchConfiguration("params_file")
     use_composition = LaunchConfiguration("use_composition")
     container_name = LaunchConfiguration("container_name")
     use_respawn = LaunchConfiguration("use_respawn")
@@ -57,15 +55,7 @@ def generate_launch_description():
         if use_composition_val.lower() == "true":
             # Composable node version
             container_name_full = (namespace, "/", container_name)
-            composable_nodes = [
-                ComposableNode(
-                    package="nav2_lifecycle_manager",
-                    plugin="nav2_lifecycle_manager::LifecycleManager",
-                    name="lifecycle_manager_map_server",
-                    parameters=[{"autostart": autostart}, {"node_names": map_names_list},
-                    ],
-                )
-            ]
+            composable_nodes = []
             for map_name in map_names_list:
                 composable_nodes.append(
                     ComposableNode(
@@ -73,7 +63,6 @@ def generate_launch_description():
                         plugin="nav2_map_server::MapServer",
                         name=map_name,
                         parameters=[
-                            configured_params,
                             {
                                 "yaml_filename": map_yaml_file,
                                 "topic_name": map_name,
@@ -92,18 +81,7 @@ def generate_launch_description():
             ]
         else:
             # Regular node version
-            nodes = [
-                SetParameter("use_sim_time", use_sim_time),
-                Node(
-                    package="nav2_lifecycle_manager",
-                    executable="lifecycle_manager",
-                    name="lifecycle_manager_map_server",
-                    output="screen",
-                    arguments=["--ros-args", "--log-level", log_level],
-                    parameters=[{"autostart": autostart}, {"node_names": map_names_list}],
-                ),
-            ]
-            
+            nodes = [SetParameter("use_sim_time", use_sim_time)]
             for name in map_names_list:
                 nodes.append(
                     Node(
@@ -114,7 +92,6 @@ def generate_launch_description():
                         respawn=use_respawn,
                         respawn_delay=2.0,
                         parameters=[
-                            configured_params,
                             {
                                 "yaml_filename": map_yaml_file,
                                 "topic_name": name,
@@ -135,20 +112,6 @@ def generate_launch_description():
     #              https://github.com/ros2/launch_ros/issues/56
     remappings = [("/tf", "tf"), ("/tf_static", "tf_static")]
 
-    configured_params = ParameterFile(
-        RewrittenYaml(
-            source_file=params_file,
-            root_key=namespace,
-            param_rewrites={},
-            convert_types=True,
-        ),
-        allow_substs=True,
-    )
-
-    # Log the configured parameters using ROS 2 logger
-    logger = get_logger("launch_file")
-    logger.info(f"Configured parameters: {configured_params}")
-
     stdout_linebuf_envvar = SetEnvironmentVariable(
         "RCUTILS_LOGGING_BUFFERED_STREAM", "1"
     )
@@ -161,12 +124,6 @@ def generate_launch_description():
         "use_sim_time",
         default_value="false",
         description="Use simulation (Gazebo) clock if true",
-    )
-
-    declare_params_file_cmd = DeclareLaunchArgument(
-        "params_file",
-        default_value=os.path.join(bringup_dir, "params", "nav2_params.yaml"),
-        description="Full path to the ROS2 parameters file to use for all launched nodes",
     )
 
     declare_autostart_cmd = DeclareLaunchArgument(
@@ -221,7 +178,6 @@ def generate_launch_description():
     ld.add_action(declare_map_yaml_cmd)
     ld.add_action(declare_map_names_cmd)
     ld.add_action(declare_use_sim_time_cmd)
-    ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_container_name_cmd)
