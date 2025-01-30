@@ -30,23 +30,18 @@ def launch_setup(context):
     rviz_config_amcl = os.path.join("/data/iw/config/rviz/iw_amcl.rviz")
     qos_file = "/data/iw/config/qos/amcl.yaml"
 
-    # Command to play the bag file with rate
+    # Command to play the bag file 
+    # Remap /map topic to prevent confusion, since it will be only used for navigation not localization
+    # Specify qos profile to handle QoS mismatches after ROS1 to ROS2 bag conversion
     bag_play_cmd = ExecuteProcess(
         cmd=[
-            "ros2",
-            "bag",
-            "play",
+            "ros2", "bag", "play",
             bag_file.perform(context),
+            "--log-level", "error",
             "--clock",
-            # Handle QoS mismatches after ROS1 to ROS2 bag conversion
-            "--qos-profile-overrides-path",
-            qos_file,
-            # Play the bag file at the specified rate
-            "--rate",
-            rate.perform(context),  
-            # Remap /map topic to prevent confusion, since it will be only used for navigation not localization
-            "--remap", 
-            "/map:=/map_navigation",   
+            "--qos-profile-overrides-path", qos_file,
+            "--rate", rate.perform(context),
+            "--remap", "/map:=/map_navigation",
         ],
         output="screen",
     )
@@ -69,14 +64,14 @@ def launch_setup(context):
             package="rviz2",
             executable="rviz2",
             name="rviz2_baseline",
-            arguments=["-d", rviz_config_baseline, "--ros-args", "--log-level", "FATAL"],
+            arguments=["-d", rviz_config_baseline, "--ros-args", "--log-level", "ERROR"],
             condition=IfCondition(use_rviz),
         ),
         Node(
             package="rviz2",
             executable="rviz2",
             name="rviz2_amcl",
-            arguments=["-d", rviz_config_amcl, "--ros-args", "--log-level", "FATAL"],
+            arguments=["-d", rviz_config_amcl, "--ros-args", "--log-level", "ERROR"],
             condition=IfCondition(use_rviz),
         ),
         bag_play_cmd,
