@@ -33,6 +33,7 @@
 #include "nav2_util/lifecycle_node.hpp"
 #include "nav2_amcl/motion_model/motion_model.hpp"
 #include "nav2_amcl/sensors/laser/laser.hpp"
+#include "nav2_amcl/log_utils.hpp"
 #include "nav2_msgs/msg/particle.hpp"
 #include "nav2_msgs/msg/particle_cloud.hpp"
 #include "nav2_msgs/srv/set_initial_pose.hpp"
@@ -111,6 +112,7 @@ protected:
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
   std::unique_ptr<nav2_util::NodeThread> executor_thread_;
+  std::unique_ptr<LogUtils> result_logger_;
 
   // Pose hypothesis
   typedef struct
@@ -391,6 +393,7 @@ protected:
   double z_rand_;
   std::string scan_topic_{"scan"};
   std::string map_topic_{"map"};
+  bool invert_tf_{false};
 };
 
 }  // namespace nav2_amcl

@@ -227,6 +227,12 @@ AmclNode::AmclNode(const rclcpp::NodeOptions & options)
   add_parameter(
     "first_map_only", rclcpp::ParameterValue(false),
     "Set this to true, when you want to load a new map published from the map_server");
+
+  add_parameter("invert_tf", rclcpp::ParameterValue(false),
+      "Invert the tf transform from the global frame to the odom frame");
+
+  add_parameter("logs_dir", rclcpp::ParameterValue(std::string("/tmp/amcl_logs")),
+      "Directory to store the AMCL pose logs");
 }
 
 AmclNode::~AmclNode()
@@ -969,6 +975,13 @@ AmclNode::publishAmclPose(
     last_published_pose_ = *p;
     first_pose_sent_ = true;
     pose_pub_->publish(std::move(p));
+    // Save the pose to a JSON file
+    if (result_logger_) {
+      if (!result_logger_->logPose(last_published_pose_)) {
+        RCLCPP_ERROR(get_logger(), "Failed to log pose");
+        result_logger_ = nullptr;
+      }
+    }
   } else {
     RCLCPP_WARN(
       get_logger(), "AMCL covariance or pose is NaN, likely due to an invalid "
@@ -1018,10 +1031,16 @@ AmclNode::sendMapToOdomTransform(const tf2::TimePoint & transform_expiration)
   // AMCL will update transform only when it has knowledge about robot's initial position
   if (!initial_pose_is_known_) {return;}
   geometry_msgs::msg::TransformStamped tmp_tf_stamped;
-  tmp_tf_stamped.header.frame_id = global_frame_id_;
+  if (invert_tf_) {
+    tmp_tf_stamped.header.frame_id = odom_frame_id_;
+    tmp_tf_stamped.child_frame_id = global_frame_id_;
+    tf2::impl::Converter<false, true>::convert(latest_tf_, tmp_tf_stamped.transform);
+  } else {
+    tmp_tf_stamped.header.frame_id = global_frame_id_;
+    tmp_tf_stamped.child_frame_id = odom_frame_id_;
+    tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
+  }
   tmp_tf_stamped.header.stamp = tf2_ros::toMsg(transform_expiration);
-  tmp_tf_stamped.child_frame_id = odom_frame_id_;
-  tf2::impl::Converter<false, true>::convert(latest_tf_.inverse(), tmp_tf_stamped.transform);
   tf_broadcaster_->sendTransform(tmp_tf_stamped);
 }
 
@@ -1053,6 +1072,7 @@ AmclNode::initParameters()
 {
   double save_pose_rate;
   double tmp_tol;
+  std::string log_path;
 
   get_parameter("alpha1", alpha1_);
   get_parameter("alpha2", alpha2_);
@@ -1099,6 +1119,8 @@ AmclNode::initParameters()
   get_parameter("always_reset_initial_pose", always_reset_initial_pose_);
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
+  get_parameter("invert_tf", invert_tf_);
+  get_parameter("log_path", log_path);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
   transform_tolerance_ = tf2::durationFromSec(tmp_tol);
@@ -1147,6 +1169,75 @@ AmclNode::initParameters()
   if (always_reset_initial_pose_) {
     initial_pose_is_known_ = false;
   }
+
+  if (log_path.empty()) {
+    RCLCPP_WARN(get_logger(), "log_path is not set, so the result will not be saved");
+  } else try {
+      log_path = (std::filesystem::path(log_path) / "result.csv");
+      result_logger_ = std::make_unique<LogUtils>(log_path);
+      RCLCPP_INFO(get_logger(), "result will be saved to: %s", log_path.c_str());
+  } catch (const std::runtime_error& e) {
+    RCLCPP_ERROR(get_logger(), "Failed to create log file: %s", e.what());
+  }
+
+  RCLCPP_INFO(get_logger(), "Frame and Topic Parameters:");
+  RCLCPP_INFO(get_logger(), "  base_frame_id: %s", base_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  global_frame_id: %s", global_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  odom_frame_id: %s", odom_frame_id_.c_str());
+  RCLCPP_INFO(get_logger(), "  scan_topic: %s", scan_topic_.c_str());
+  RCLCPP_INFO(get_logger(), "  map_topic: %s", map_topic_.c_str());
+
+  RCLCPP_INFO(get_logger(), "Particle Filter Parameters:");
+  RCLCPP_INFO(get_logger(), "  max_particles: %d", max_particles_);
+  RCLCPP_INFO(get_logger(), "  min_particles: %d", min_particles_);
+  RCLCPP_INFO(get_logger(), "  pf_err: %.3f", pf_err_);
+  RCLCPP_INFO(get_logger(), "  pf_z: %.3f", pf_z_);
+  RCLCPP_INFO(get_logger(), "  resample_interval: %d", resample_interval_);
+
+  RCLCPP_INFO(get_logger(), "Recovery Parameters:");
+  RCLCPP_INFO(get_logger(), "  recovery_alpha_fast: %.3f", alpha_fast_);
+  RCLCPP_INFO(get_logger(), "  recovery_alpha_slow: %.3f", alpha_slow_);
+  RCLCPP_INFO(get_logger(), "  save_pose_rate: %.3f", save_pose_rate);
+
+  RCLCPP_INFO(get_logger(), "Motion Model Parameters:");
+  RCLCPP_INFO(get_logger(), "  robot_model_type: %s", robot_model_type_.c_str());
+  RCLCPP_INFO(get_logger(), "  alpha1: %.3f", alpha1_);
+  RCLCPP_INFO(get_logger(), "  alpha2: %.3f", alpha2_);
+  RCLCPP_INFO(get_logger(), "  alpha3: %.3f", alpha3_);
+  RCLCPP_INFO(get_logger(), "  alpha4: %.3f", alpha4_);
+  RCLCPP_INFO(get_logger(), "  alpha5: %.3f", alpha5_);
+  RCLCPP_INFO(get_logger(), "  update_min_a: %.3f", a_thresh_);
+  RCLCPP_INFO(get_logger(), "  update_min_d: %.3f", d_thresh_);
+
+  RCLCPP_INFO(get_logger(), "Laser Sensor Parameters:");
+  RCLCPP_INFO(get_logger(), "  laser_model_type: %s", sensor_model_type_.c_str());
+  RCLCPP_INFO(get_logger(), "  laser_max_range: %.3f", laser_max_range_);
+  RCLCPP_INFO(get_logger(), "  laser_min_range: %.3f", laser_min_range_);
+  RCLCPP_INFO(get_logger(), "  max_beams: %d", max_beams_);
+  RCLCPP_INFO(get_logger(), "  laser_likelihood_max_dist: %.3f", laser_likelihood_max_dist_);
+  RCLCPP_INFO(get_logger(), "  z_hit: %.3f", z_hit_);
+  RCLCPP_INFO(get_logger(), "  z_rand: %.3f", z_rand_);
+  RCLCPP_INFO(get_logger(), "  z_short: %.3f", z_short_);
+  RCLCPP_INFO(get_logger(), "  z_max: %.3f", z_max_);
+  RCLCPP_INFO(get_logger(), "  lambda_short: %.3f", lambda_short_);
+  RCLCPP_INFO(get_logger(), "  sigma_hit: %.3f", sigma_hit_);
+
+  RCLCPP_INFO(get_logger(), "Beam Skip Parameters:");
+  RCLCPP_INFO(get_logger(), "  do_beamskip: %s", do_beamskip_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  beam_skip_distance: %.3f", beam_skip_distance_);
+  RCLCPP_INFO(get_logger(), "  beam_skip_threshold: %.3f", beam_skip_threshold_);
+  RCLCPP_INFO(get_logger(), "  beam_skip_error_threshold: %.3f", beam_skip_error_threshold_);
+
+  RCLCPP_INFO(get_logger(), "Other Parameters:");
+  RCLCPP_INFO(get_logger(), "  tf_broadcast: %s", tf_broadcast_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  transform_tolerance: %.3f", tmp_tol);
+  RCLCPP_INFO(get_logger(), "  first_map_only: %s", first_map_only_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  always_reset_initial_pose: %s",
+      always_reset_initial_pose_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  set_initial_pose: %s", set_initial_pose_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "  initial_pose: [%.3f, %.3f, %.3f, %.3f]", initial_pose_x_,
+      initial_pose_y_, initial_pose_z_, initial_pose_yaw_);
+  RCLCPP_INFO(get_logger(), "  invert_tf: %s", invert_tf_ ? "true" : "false");
 }
 
 /**
@@ -1507,6 +1598,8 @@ AmclNode::initTransforms()
 void
 AmclNode::initMessageFilters()
 {
+  RCLCPP_INFO_STREAM(
+      get_logger(), "initializing message filters for: " << scan_topic_ << ", " << odom_frame_id_);
   auto sub_opt = rclcpp::SubscriptionOptions();
   sub_opt.callback_group = callback_group_;
   laser_scan_sub_ = std::make_unique<message_filters::Subscriber<sensor_msgs::msg::LaserScan,
