@@ -8,6 +8,8 @@
 
 namespace nav2_amcl {
 
+namespace fs = std::filesystem;
+
 class LogUtils {
  public:
   static constexpr const char* CSV_HEADER =
@@ -16,16 +18,14 @@ class LogUtils {
       "orientation_x,orientation_y,orientation_z,orientation_w,"
       "pose_covariance";
 
-  explicit LogUtils(const std::string& output_path) : output_path_(output_path) {
-    if (output_path_.empty()) {
-      throw std::runtime_error("Output path cannot be empty");
+  explicit LogUtils(const std::string& output_dir) {
+    if (output_dir.empty()) {
+      throw std::runtime_error("Output directory cannot be empty");
     }
-    // Create directory if it doesn't exist
-    std::filesystem::path dir = std::filesystem::path(output_path_).parent_path();
-    if (!dir.empty()) {
-      std::filesystem::create_directories(dir);
+    if (!fs::exists(output_dir)) {
+      fs::create_directories(output_dir);
     }
-    // Create/overwrite file with header
+    output_path_ = (fs::path(output_dir) / "result.csv").string();
     std::ofstream f(output_path_, std::ios::out | std::ios::trunc);
     if (!f) {
       throw std::runtime_error("Failed to create file: " + output_path_);

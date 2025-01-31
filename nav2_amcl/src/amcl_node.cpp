@@ -27,7 +27,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "message_filters/subscriber.h"
 #include "nav2_amcl/angleutils.hpp"
 #include "nav2_util/geometry_utils.hpp"
@@ -975,7 +974,7 @@ AmclNode::publishAmclPose(
     last_published_pose_ = *p;
     first_pose_sent_ = true;
     pose_pub_->publish(std::move(p));
-    // Save the pose to a JSON file
+    // Writting the pose to a csv file
     if (result_logger_) {
       if (!result_logger_->logPose(last_published_pose_)) {
         RCLCPP_ERROR(get_logger(), "Failed to log pose");
@@ -1072,7 +1071,7 @@ AmclNode::initParameters()
 {
   double save_pose_rate;
   double tmp_tol;
-  std::string log_path;
+  std::string logs_dir;
 
   get_parameter("alpha1", alpha1_);
   get_parameter("alpha2", alpha2_);
@@ -1120,7 +1119,7 @@ AmclNode::initParameters()
   get_parameter("scan_topic", scan_topic_);
   get_parameter("map_topic", map_topic_);
   get_parameter("invert_tf", invert_tf_);
-  get_parameter("log_path", log_path);
+  get_parameter("logs_dir", logs_dir);
 
   save_pose_period_ = tf2::durationFromSec(1.0 / save_pose_rate);
   transform_tolerance_ = tf2::durationFromSec(tmp_tol);
@@ -1170,13 +1169,12 @@ AmclNode::initParameters()
     initial_pose_is_known_ = false;
   }
 
-  if (log_path.empty()) {
-    RCLCPP_WARN(get_logger(), "log_path is not set, so the result will not be saved");
+  if (logs_dir.empty()) {
+    RCLCPP_WARN(get_logger(), "logs_dir is not set, so the result will not be saved");
   } else try {
-      log_path = (std::filesystem::path(log_path) / "result.csv");
-      result_logger_ = std::make_unique<LogUtils>(log_path);
-      RCLCPP_INFO(get_logger(), "result will be saved to: %s", log_path.c_str());
-  } catch (const std::runtime_error& e) {
+      result_logger_ = std::make_unique<LogUtils>(logs_dir);
+      RCLCPP_INFO(get_logger(), "result will be saved to: %s", logs_dir.c_str());
+  } catch (const std::exception& e) {
     RCLCPP_ERROR(get_logger(), "Failed to create log file: %s", e.what());
   }
 
