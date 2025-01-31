@@ -1,7 +1,0 @@
-/tf_static:
-  reliability: reliable
-  history: keep_all
-  durability: transient_local
-/map:
-  durability: transient_local
-  history: keep_all
