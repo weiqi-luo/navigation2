@@ -63,7 +63,7 @@ class InitialPosePublisher : public rclcpp::Node {
 
     RCLCPP_INFO(this->get_logger(),
         "Got transform from '%s' to '%s' and published transform from '%s' to '%s'",
-        base_frame_id_.c_str(), map_frame_id_.c_str(), map_frame_id_.c_str(),
+        base_frame_id_.c_str(), map_frame_id_.c_str(), base_frame_id_.c_str(),
         map_frame_id_new_.c_str());
 
     // Stop the timer after the first successful transform is received
